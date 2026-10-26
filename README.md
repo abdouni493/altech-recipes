@@ -13,7 +13,7 @@ UI in French (default) and Arabic (RTL), light and dark theme.
 1. **Database.** In Supabase → SQL Editor, run the whole file [`supabase/schema.sql`](supabase/schema.sql). It creates every table and relation, the row-level security policies, the account functions (accounts live in `auth.users`), and the public image buckets `products`, `recipes`, `packs` and `site`. It is safe to re-run.
 2. **Environment.** Copy `.env.example` to `.env.local` and fill in:
    - `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` (Project Settings → API)
-   - `DATABASE_URL` (transaction pooler, port 6543) and `DIRECT_URL` (port 5432) from Project Settings → Database → Connect, with your database password.
+   - `DATABASE_URL` (transaction pooler, port 6543, keep `?pgbouncer=true`) from Project Settings → Database → Connect, with your database password. On Vercel, set the same variables in Project → Settings → Environment Variables, then open `/api/health` to check the connection and the schema.
 3. **Run.**
    ```bash
    npm install

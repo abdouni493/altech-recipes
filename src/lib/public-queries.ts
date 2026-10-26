@@ -11,8 +11,18 @@ export const PUBLIC_RECIPE_SELECT = {
 
 export type PublicRecipe = { id: string; name: string; nameAr: string; description: string; descriptionAr: string; imageUrl: string | null };
 
+/** Public pages render an empty catalog instead of crashing when the database is unreachable. */
+async function orEmpty<T>(label: string, query: Promise<T[]>): Promise<T[]> {
+  try {
+    return await query;
+  } catch (e) {
+    console.error(`${label} failed:`, e);
+    return [];
+  }
+}
+
 export function getPublicRecipes(take?: number): Promise<PublicRecipe[]> {
-  return prisma.recipe.findMany({ where: { isVisibleOnWebsite: true }, select: PUBLIC_RECIPE_SELECT, orderBy: { createdAt: "desc" }, take });
+  return orEmpty("getPublicRecipes", prisma.recipe.findMany({ where: { isVisibleOnWebsite: true }, select: PUBLIC_RECIPE_SELECT, orderBy: { createdAt: "desc" }, take }));
 }
 
 export function getPublicRecipe(id: string): Promise<PublicRecipe | null> {
@@ -20,8 +30,8 @@ export function getPublicRecipe(id: string): Promise<PublicRecipe | null> {
 }
 
 export function getPublicPacks() {
-  return prisma.pack.findMany({
+  return orEmpty("getPublicPacks", prisma.pack.findMany({
     select: { id: true, name: true, nameAr: true, description: true, descriptionAr: true, imageUrl: true },
     orderBy: { createdAt: "asc" },
-  });
+  }));
 }

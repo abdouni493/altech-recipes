@@ -6,7 +6,7 @@ const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
 const nextConfig = {
   experimental: {
     serverActions: { bodySizeLimit: "60mb" },
-    serverComponentsExternalPackages: ["adm-zip", "bcryptjs"],
+    serverComponentsExternalPackages: ["adm-zip", "@prisma/client"],
   },
   poweredByHeader: false,
 };

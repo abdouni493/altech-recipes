@@ -20,7 +20,8 @@ export default async function LoginPage({ searchParams }: { searchParams: { call
   const settings = await getSiteSettings();
   const siteName = localized(settings, "siteName", locale);
   const hero = parseHeroImages(settings)[0];
-  const canCreateAdmin = !(await adminExists());
+  // On a database error the setup button stays hidden (see /api/health for the cause).
+  const canCreateAdmin = await adminExists().then((exists) => !exists, (e) => (console.error("adminExists failed:", e), false));
 
   return (
     <div className="grid min-h-screen lg:grid-cols-[1.05fr_1fr]">
