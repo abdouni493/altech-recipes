@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { forwardRef, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -101,12 +101,15 @@ export function LoginForm({ callbackUrl, expired, canCreateAdmin }: { callbackUr
   );
 }
 
-function PasswordInput({ id, autoComplete, invalid, placeholder, ...rest }: React.InputHTMLAttributes<HTMLInputElement> & { invalid?: boolean }) {
+// forwardRef: react-hook-form's register() reads the value through the input ref.
+const PasswordInput = forwardRef<HTMLInputElement, React.InputHTMLAttributes<HTMLInputElement> & { invalid?: boolean }>(function PasswordInput(
+  { invalid, ...rest }, ref,
+) {
   const t = useTranslations("auth");
   const [show, setShow] = useState(false);
   return (
     <div className="relative">
-      <Input id={id} type={show ? "text" : "password"} autoComplete={autoComplete} placeholder={placeholder} className="pe-11" aria-invalid={invalid} {...rest} />
+      <Input ref={ref} {...rest} type={show ? "text" : "password"} className="pe-11" aria-invalid={invalid} />
       <button type="button" onClick={() => setShow((s) => !s)}
         className="absolute inset-y-0 end-0 grid w-11 place-items-center rounded-e-lg text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         aria-label={show ? t("hidePassword") : t("showPassword")}>
@@ -114,7 +117,7 @@ function PasswordInput({ id, autoComplete, invalid, placeholder, ...rest }: Reac
       </button>
     </div>
   );
-}
+});
 
 function SignInForm({ onDone }: { onDone: (home: string) => void }) {
   const t = useTranslations("auth");
@@ -176,7 +179,7 @@ function AdminSetupForm({ onDone, onExists }: { onDone: (home: string) => void; 
         <Input id="s-name" autoComplete="name" aria-invalid={!!e.name} {...form.register("name")} />
       </Field>
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field label={t("username")} htmlFor="s-username" error={e.username?.message}>
+        <Field label={t("setupUsername")} htmlFor="s-username" error={e.username?.message}>
           <Input id="s-username" dir="ltr" autoComplete="username" autoCapitalize="none" aria-invalid={!!e.username} {...form.register("username")} />
         </Field>
         <Field label={t("email")} htmlFor="s-email" error={e.email?.message}>
