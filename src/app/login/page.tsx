@@ -15,12 +15,13 @@ export async function generateMetadata(): Promise<Metadata> {
 export const dynamic = "force-dynamic";
 
 export default async function LoginPage({ searchParams }: { searchParams: { callbackUrl?: string; expired?: string } }) {
-  // On a database error the setup button stays hidden (see /api/health for the cause).
+  // The setup button is hidden only when an admin is known to exist. If the check fails, it stays
+  // visible: create_first_admin() refuses a second admin anyway, and the form shows the real error.
   const [t, locale, settings, canCreateAdmin] = await Promise.all([
     getTranslations("auth"),
     getLocale(),
     getSiteSettings(),
-    adminExists().then((exists) => !exists, (e) => (console.error("adminExists failed:", e), false)),
+    adminExists().then((exists) => !exists, (e) => (console.error("adminExists failed:", e), true)),
   ]);
   const siteName = localized(settings, "siteName", locale);
   const hero = parseHeroImages(settings)[0];
