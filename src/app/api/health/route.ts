@@ -12,6 +12,7 @@ export async function GET() {
     NEXT_PUBLIC_SUPABASE_URL: Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL),
     NEXT_PUBLIC_SUPABASE_ANON_KEY: Boolean(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY),
     DATABASE_URL: Boolean(process.env.DATABASE_URL),
+    DATABASE_URL_is_postgres_connection_string: /^postgres(ql)?:\/\/[^:]+:[^@]+@[^/]+:\d+\//.test(process.env.DATABASE_URL ?? ""),
     DATABASE_URL_uses_pooler_pgbouncer: /pgbouncer=true/.test(process.env.DATABASE_URL ?? ""),
   };
   const checks: Record<string, string> = {};

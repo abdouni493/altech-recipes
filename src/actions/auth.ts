@@ -78,6 +78,10 @@ export type FirstAdminInput = z.input<typeof firstAdminSchema>;
 function setupError(e: unknown): ActionResult<{ home: string }> {
   const msg = e instanceof Error ? e.message : String(e);
   console.error("createFirstAdminAction failed:", e);
+  // Prisma "Validation Error Count" = DATABASE_URL is not a postgresql:// connection string.
+  if (/Validation Error Count|must start with the protocol|Error validating datasource/i.test(msg)) {
+    return { ok: false, error: "auth.setupDbUrlInvalid" };
+  }
   if (/P1001|P1000|Can't reach database|ENOTFOUND|tenant\/user|password authentication failed|Environment variable not found/i.test(msg)) {
     return { ok: false, error: "auth.setupDbUnreachable" };
   }
