@@ -14,9 +14,10 @@ export class AuthError extends Error {
 /** Profile of the logged-in Supabase user, re-read from the DB on every request (never trusted from the token). */
 export const getSessionUser = cache(async () => {
   const supabase = createSupabaseServer();
-  const { data } = await supabase.auth.getUser();
-  if (!data.user) return null;
-  return prisma.user.findUnique({ where: { id: data.user.id } });
+  const { data } = await supabase.auth.getClaims();
+  const id = data?.claims?.sub;
+  if (!id) return null;
+  return prisma.user.findUnique({ where: { id } });
 });
 
 /** ADMIN or WORKER; with `perm`, a worker must hold that permission. Throws otherwise. */

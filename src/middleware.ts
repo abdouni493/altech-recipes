@@ -14,9 +14,10 @@ export async function middleware(req: NextRequest) {
       },
     },
   });
-  const { data } = await supabase.auth.getUser();
-  const user = data.user;
-  const role = user?.app_metadata?.role as string | undefined;
+  // getClaims verifies the JWT locally (no Auth server round trip on every navigation).
+  const { data } = await supabase.auth.getClaims();
+  const user = data?.claims ?? null;
+  const role = (user?.app_metadata as { role?: string } | undefined)?.role;
   const { pathname } = req.nextUrl;
 
   const redirectTo = (path: string) => {

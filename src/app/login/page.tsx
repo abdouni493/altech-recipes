@@ -15,13 +15,15 @@ export async function generateMetadata(): Promise<Metadata> {
 export const dynamic = "force-dynamic";
 
 export default async function LoginPage({ searchParams }: { searchParams: { callbackUrl?: string; expired?: string } }) {
-  const t = await getTranslations("auth");
-  const locale = await getLocale();
-  const settings = await getSiteSettings();
+  // On a database error the setup button stays hidden (see /api/health for the cause).
+  const [t, locale, settings, canCreateAdmin] = await Promise.all([
+    getTranslations("auth"),
+    getLocale(),
+    getSiteSettings(),
+    adminExists().then((exists) => !exists, (e) => (console.error("adminExists failed:", e), false)),
+  ]);
   const siteName = localized(settings, "siteName", locale);
   const hero = parseHeroImages(settings)[0];
-  // On a database error the setup button stays hidden (see /api/health for the cause).
-  const canCreateAdmin = await adminExists().then((exists) => !exists, (e) => (console.error("adminExists failed:", e), false));
 
   return (
     <div className="grid min-h-screen lg:grid-cols-[1.05fr_1fr]">

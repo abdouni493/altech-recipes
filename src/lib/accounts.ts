@@ -40,8 +40,14 @@ export async function createFirstAdmin(a: { email: string; password: string; use
 }
 
 export async function adminExists() {
-  const rows = await prisma.$queryRaw<{ exists: boolean }[]>`select public.admin_exists() as exists`;
-  return Boolean(rows[0]?.exists);
+  try {
+    const rows = await prisma.$queryRaw<{ exists: boolean }[]>`select public.admin_exists() as exists`;
+    return Boolean(rows[0]?.exists);
+  } catch (e) {
+    // SQL function missing or not executable: fall back to reading the profiles table.
+    console.error("admin_exists() failed, falling back:", e);
+    return (await prisma.user.count({ where: { role: "ADMIN" } })) > 0;
+  }
 }
 
 export async function setAccountPassword(userId: string, password: string) {
