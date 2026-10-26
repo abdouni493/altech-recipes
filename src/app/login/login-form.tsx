@@ -163,8 +163,8 @@ function AdminSetupForm({ onDone, onExists }: { onDone: (home: string) => void; 
   async function submit(values: FirstAdminInput) {
     const res = await createFirstAdminAction(values);
     if (!res.ok) {
-      if (res.error === "auth.adminExists") {
-        toast.error(t("adminExists"));
+      if (res.error === "auth.adminExists" || res.error === "auth.setupLoginFailed") {
+        toast.error(t(res.error === "auth.adminExists" ? "adminExists" : "setupLoginFailed"), { duration: 10000 });
         return onExists();
       }
       Object.entries(res.fieldErrors ?? {}).forEach(([k, m]) => form.setError(k as keyof FirstAdminInput, { message: m }));
