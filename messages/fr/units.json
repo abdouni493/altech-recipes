@@ -1,0 +1,38 @@
+{
+  "newUnit": "Nouvelle unité",
+  "manage": "Gérer les unités",
+  "manageDescription": "Modifiez ou supprimez les unités de mesure. Une unité utilisée ne peut pas être supprimée.",
+  "createTitle": "Nouvelle unité",
+  "createDescription": "L'unité sera enregistrée et sélectionnée immédiatement.",
+  "editTitle": "Modifier l'unité",
+  "name": "Nom",
+  "namePlaceholder": "ex. Litre",
+  "nameAr": "Nom en arabe",
+  "symbol": "Symbole",
+  "symbolPlaceholder": "ex. L",
+  "dimension": "Type de mesure",
+  "dimensionHint": "Permet la conversion automatique (ex. L ↔ mL, kg ↔ g).",
+  "dimensions": {
+    "VOLUME": "Volume",
+    "MASS": "Masse",
+    "COUNT": "Pièces",
+    "OTHER": "Autre (non convertible)"
+  },
+  "factor": "Équivalent en unité de base",
+  "factorHint": "Valeur de 1 {symbol} exprimée en {base}. Ex. : 1 mL = 0,001 L.",
+  "base": {
+    "VOLUME": "litres (L)",
+    "MASS": "kilogrammes (kg)",
+    "COUNT": "pièces (pc)",
+    "OTHER": "—"
+  },
+  "select": "Choisir une unité",
+  "created": "Unité « {name} » créée.",
+  "updated": "Unité mise à jour.",
+  "deleted": "Unité supprimée.",
+  "inUse": "Utilisée par {products} produit(s), {ingredients} ingrédient(s) et {recipes} recette(s).",
+  "inUseTitle": "Suppression impossible",
+  "usage": "Utilisations",
+  "notUsed": "Non utilisée",
+  "empty": "Aucune unité. Créez votre première unité."
+}

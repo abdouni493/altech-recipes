@@ -1,0 +1,45 @@
+{
+  "title": "Paramètres",
+  "subtitle": "Votre compte administrateur et la base de données.",
+  "tabs": {
+    "account": "Compte",
+    "database": "Base de données"
+  },
+  "account": {
+    "profile": "Profil",
+    "profileHint": "Nom, identifiant et e-mail de l'administrateur.",
+    "name": "Nom",
+    "username": "Identifiant",
+    "email": "E-mail",
+    "saved": "Profil mis à jour.",
+    "password": "Mot de passe",
+    "passwordHint": "Le mot de passe actuel est requis pour toute modification.",
+    "currentPassword": "Mot de passe actuel",
+    "newPassword": "Nouveau mot de passe",
+    "confirmPassword": "Confirmer le nouveau mot de passe",
+    "passwordSaved": "Mot de passe modifié."
+  },
+  "db": {
+    "backupTitle": "Sauvegarde",
+    "backupText": "Téléchargez une archive .zip contenant l'export complet de la base de données (toutes les tables) et le dossier des images.",
+    "download": "Télécharger la sauvegarde",
+    "downloading": "Préparation…",
+    "lastBackup": "Dernière sauvegarde : {date}",
+    "neverBackedUp": "Aucune sauvegarde effectuée pour le moment.",
+    "backupDone": "Sauvegarde téléchargée.",
+    "restoreTitle": "Restauration",
+    "restoreText": "Importez une archive de sauvegarde (.zip) créée par cette application.",
+    "chooseFile": "Choisir un fichier .zip",
+    "selectedFile": "Fichier sélectionné : {name} ({size})",
+    "restore": "Restaurer",
+    "restoring": "Restauration…",
+    "confirmTitle": "Remplacer toutes les données ?",
+    "confirmText": "Cette opération va remplacer TOUTES les données actuelles (recettes, clients, commandes, paramètres, images) par le contenu de la sauvegarde. Elle est irréversible. Pensez à télécharger une sauvegarde avant de continuer.",
+    "confirmButton": "Oui, restaurer",
+    "restored": "Restauration terminée : {count} enregistrements importés.",
+    "invalidFile": "Fichier de sauvegarde invalide.",
+    "relogin": "Si votre compte a changé, vous serez invité à vous reconnecter.",
+    "stats": "Contenu actuel",
+    "statsLine": "{recipes} recettes · {products} produits · {clients} clients · {orders} commandes"
+  }
+}

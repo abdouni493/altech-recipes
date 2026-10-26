@@ -1,0 +1,56 @@
+{
+  "title": "Commandes",
+  "subtitle": "Commandes reçues depuis le site web.",
+  "orderNumber": "N° commande",
+  "date": "Date",
+  "fullName": "Nom complet",
+  "phone": "Téléphone",
+  "wilaya": "Wilaya",
+  "commune": "Commune",
+  "item": "Article demandé",
+  "message": "Message",
+  "wantsAccount": "Souhaite un compte client",
+  "status": {
+    "PENDING": "En attente",
+    "CONFIRMED": "Confirmée",
+    "CANCELLED": "Annulée"
+  },
+  "filters": {
+    "status": "Statut",
+    "allStatuses": "Tous les statuts",
+    "wilaya": "Wilaya",
+    "allWilayas": "Toutes les wilayas",
+    "from": "Du",
+    "to": "Au",
+    "reset": "Réinitialiser",
+    "search": "Nom ou téléphone…"
+  },
+  "actions": {
+    "details": "Voir les détails",
+    "confirm": "Confirmer",
+    "cancel": "Annuler la commande",
+    "convert": "Créer un client",
+    "call": "Appeler",
+    "whatsapp": "WhatsApp",
+    "delete": "Supprimer"
+  },
+  "toast": {
+    "confirmed": "Commande {number} confirmée.",
+    "cancelled": "Commande {number} annulée.",
+    "deleted": "Commande supprimée."
+  },
+  "confirmTitle": "Confirmer cette commande ?",
+  "confirmText": "La commande {number} passera au statut « Confirmée ».",
+  "cancelTitle": "Annuler cette commande ?",
+  "cancelText": "La commande {number} passera au statut « Annulée ».",
+  "detailsTitle": "Commande {number}",
+  "createdAt": "Reçue le",
+  "confirmedAt": "Confirmée le",
+  "cancelledAt": "Annulée le",
+  "noItem": "Non précisé",
+  "recipe": "Recette",
+  "pack": "Pack",
+  "empty": "Aucune commande ne correspond à vos critères.",
+  "emptyTitle": "Pas encore de commandes",
+  "whatsappMessage": "Bonjour {name}, nous avons bien reçu votre commande {number} sur {site}."
+}

@@ -1,0 +1,38 @@
+{
+  "newUnit": "وحدة جديدة",
+  "manage": "إدارة الوحدات",
+  "manageDescription": "عدّل أو احذف وحدات القياس. لا يمكن حذف وحدة مستعملة.",
+  "createTitle": "وحدة جديدة",
+  "createDescription": "سيتم حفظ الوحدة واختيارها مباشرة.",
+  "editTitle": "تعديل الوحدة",
+  "name": "الاسم",
+  "namePlaceholder": "مثال: Litre",
+  "nameAr": "الاسم بالعربية",
+  "symbol": "الرمز",
+  "symbolPlaceholder": "مثال: L",
+  "dimension": "نوع القياس",
+  "dimensionHint": "يسمح بالتحويل التلقائي (مثال: L ↔ mL، kg ↔ g).",
+  "dimensions": {
+    "VOLUME": "حجم",
+    "MASS": "كتلة",
+    "COUNT": "قطع",
+    "OTHER": "أخرى (غير قابلة للتحويل)"
+  },
+  "factor": "المكافئ بالوحدة الأساسية",
+  "factorHint": "قيمة 1 {symbol} معبَّرًا عنها بـ {base}. مثال: 1 mL = 0.001 L.",
+  "base": {
+    "VOLUME": "اللتر (L)",
+    "MASS": "الكيلوغرام (kg)",
+    "COUNT": "القطع (pc)",
+    "OTHER": "—"
+  },
+  "select": "اختر وحدة",
+  "created": "تم إنشاء الوحدة «{name}».",
+  "updated": "تم تحديث الوحدة.",
+  "deleted": "تم حذف الوحدة.",
+  "inUse": "مستعملة في {products} منتج(ات) و{ingredients} مكوّن(ات) و{recipes} وصفة(ات).",
+  "inUseTitle": "لا يمكن الحذف",
+  "usage": "الاستعمالات",
+  "notUsed": "غير مستعملة",
+  "empty": "لا توجد وحدات. أنشئ وحدتك الأولى."
+}

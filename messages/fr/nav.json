@@ -1,0 +1,32 @@
+{
+  "admin": {
+    "dashboard": "Tableau de bord",
+    "products": "Produits",
+    "recipes": "Recettes",
+    "packs": "Packs",
+    "clients": "Clients",
+    "orders": "Commandes",
+    "website": "Gestion du site",
+    "settings": "Paramètres",
+    "area": "Espace administrateur",
+    "workers": "Employés"
+  },
+  "client": {
+    "recipes": "Mes recettes",
+    "calculator": "Calculateur",
+    "favorites": "Favoris",
+    "history": "Historique",
+    "help": "Aide",
+    "account": "Mon compte",
+    "area": "Espace client"
+  },
+  "site": {
+    "home": "Accueil",
+    "recipes": "Recettes",
+    "order": "Commander",
+    "contact": "Contact",
+    "clientArea": "Espace client",
+    "login": "Connexion",
+    "myArea": "Mon espace"
+  }
+}

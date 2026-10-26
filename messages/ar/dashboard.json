@@ -1,0 +1,25 @@
+{
+  "title": "لوحة التحكم",
+  "greeting": "مرحبًا، {name}",
+  "subtitle": "إليك نظرة عامة على نشاطك.",
+  "stats": {
+    "products": "المنتجات",
+    "recipes": "الوصفات",
+    "packs": "الباقات",
+    "clients": "الزبائن",
+    "pendingOrders": "طلبات قيد الانتظار",
+    "confirmedOrders": "طلبات مؤكدة"
+  },
+  "latestOrders": "آخر الطلبات",
+  "recentRecipes": "الوصفات الأخيرة",
+  "ordersPerMonth": "الطلبات حسب الشهر",
+  "ordersPerMonthHint": "خلال الأشهر الستة الأخيرة",
+  "seeAll": "عرض الكل",
+  "noOrders": "لا توجد طلبات حاليًا.",
+  "noRecipes": "لا توجد وصفات حاليًا.",
+  "quickActions": "إجراءات سريعة",
+  "newRecipe": "وصفة جديدة",
+  "newClient": "زبون جديد",
+  "newProduct": "منتج جديد",
+  "orders": "الطلبات"
+}

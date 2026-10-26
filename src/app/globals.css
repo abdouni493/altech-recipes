@@ -1,0 +1,118 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Palette inspired by pinchofyum.com: crisp white, plum, mustard gold, warm charcoal text */
+    --background: 0 0% 100%;
+    --foreground: 0 0% 10%;        /* #1A1A1A headings */
+    --cream: 36 33% 97%;           /* #F9F7F4 section wash */
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 10%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 10%;
+    --primary: 323 29% 35%;        /* #734060 plum */
+    --primary-foreground: 0 0% 100%;
+    --sage-soft: 322 30% 95%;      /* plum tint */
+    --secondary: 36 33% 96%;
+    --secondary-foreground: 0 0% 20%;
+    --muted: 36 20% 95%;
+    --muted-foreground: 0 0% 38%;  /* ~#4D4D4D body copy */
+    --accent: 39 80% 92%;          /* soft gold */
+    --accent-foreground: 30 50% 20%;
+    --lemon: 39 81% 63%;           /* #EDB654 gold */
+    --lemon-foreground: 0 0% 10%;
+    --destructive: 4 65% 50%;
+    --destructive-foreground: 0 0% 100%;
+    --success: 140 40% 38%;
+    --success-foreground: 0 0% 100%;
+    --warning: 36 90% 50%;
+    --warning-foreground: 30 50% 12%;
+    --border: 30 10% 89%;
+    --input: 30 8% 80%;
+    --ring: 323 29% 40%;
+    --radius: 0.375rem;
+    --ease-cinema: cubic-bezier(0.76, 0, 0.24, 1);
+  }
+
+  .dark {
+    --background: 320 8% 8%;
+    --foreground: 30 20% 94%;
+    --cream: 320 8% 11%;
+    --card: 320 7% 11%;
+    --card-foreground: 30 20% 94%;
+    --popover: 320 7% 11%;
+    --popover-foreground: 30 20% 94%;
+    --primary: 322 38% 68%;
+    --primary-foreground: 320 30% 8%;
+    --sage-soft: 322 18% 18%;
+    --secondary: 320 6% 16%;
+    --secondary-foreground: 30 20% 90%;
+    --muted: 320 6% 15%;
+    --muted-foreground: 30 8% 66%;
+    --accent: 39 40% 20%;
+    --accent-foreground: 39 80% 85%;
+    --lemon: 39 81% 63%;
+    --lemon-foreground: 0 0% 8%;
+    --destructive: 4 60% 52%;
+    --destructive-foreground: 0 0% 100%;
+    --success: 140 35% 48%;
+    --success-foreground: 0 0% 100%;
+    --warning: 36 85% 55%;
+    --warning-foreground: 30 50% 10%;
+    --border: 320 6% 21%;
+    --input: 320 6% 27%;
+    --ring: 322 38% 65%;
+  }
+
+  * { @apply border-border; }
+  html { -webkit-tap-highlight-color: transparent; }
+  body { @apply bg-background text-foreground antialiased; font-feature-settings: "ss01", "cv11"; }
+  h1, h2, h3, h4 { @apply font-serif tracking-tight; }
+  ::selection { background: hsl(var(--lemon) / 0.7); color: hsl(var(--lemon-foreground)); }
+  html { scroll-behavior: smooth; }
+  :focus-visible { outline: none; }
+}
+
+@layer utilities {
+  .text-balance { text-wrap: balance; }
+  .scrollbar-thin { scrollbar-width: thin; }
+  /* Mirror directional icons in RTL while staying composable with Tailwind transform utilities. */
+  [dir="rtl"] .flip-rtl {
+    --tw-scale-x: -1;
+    transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
+  }
+  /* Pinch-of-Yum style label: small caps, wide tracking, square gold tag */
+  .eyebrow { @apply text-xs font-bold uppercase tracking-[0.25em] text-primary; font-family: var(--font-label); }
+  .tag { @apply inline-block bg-lemon px-3 py-1 text-[11px] font-bold uppercase tracking-[0.2em] text-lemon-foreground; font-family: var(--font-label); }
+  .marquee-track { animation: marquee 38s linear infinite; }
+  [dir="rtl"] .marquee-track { animation-direction: reverse; }
+  .grain { background-image: radial-gradient(hsl(var(--foreground) / 0.035) 1px, transparent 1px); background-size: 4px 4px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
+}
+
+@media print {
+  .no-print { display: none !important; }
+  body { background: white !important; color: black !important; }
+  .print-only { display: block !important; }
+}
+.print-only { display: none; }
+
+/* Font sets per language (variables are defined by next/font in the root layout). */
+html[lang="fr"] { --font-heading: var(--font-arvo); --font-body: var(--font-bitter), var(--font-tajawal); --font-label: var(--font-dmsans); }
+html[lang="ar"] { --font-heading: var(--font-cairo); --font-body: var(--font-tajawal), var(--font-bitter); --font-label: var(--font-cairo); }
+html[lang="ar"] h1, html[lang="ar"] h2, html[lang="ar"] h3, html[lang="ar"] h4 { letter-spacing: 0; }
+
+/* When a page contains a .print-area, only that area is printed. */
+@media print {
+  body:has(.print-area) * { visibility: hidden; }
+  body:has(.print-area) .print-area, body:has(.print-area) .print-area * { visibility: visible; }
+  body:has(.print-area) .print-area { position: absolute; inset-inline: 0; top: 0; border: none; background: white; box-shadow: none; }
+  body:has(.print-area) .print-area .no-print { display: none !important; }
+}
+
+@keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }

@@ -1,0 +1,56 @@
+{
+  "title": "الطلبات",
+  "subtitle": "الطلبات الواردة من الموقع.",
+  "orderNumber": "رقم الطلب",
+  "date": "التاريخ",
+  "fullName": "الاسم الكامل",
+  "phone": "الهاتف",
+  "wilaya": "الولاية",
+  "commune": "البلدية",
+  "item": "المنتج المطلوب",
+  "message": "الرسالة",
+  "wantsAccount": "يرغب في حساب زبون",
+  "status": {
+    "PENDING": "قيد الانتظار",
+    "CONFIRMED": "مؤكدة",
+    "CANCELLED": "ملغاة"
+  },
+  "filters": {
+    "status": "الحالة",
+    "allStatuses": "كل الحالات",
+    "wilaya": "الولاية",
+    "allWilayas": "كل الولايات",
+    "from": "من",
+    "to": "إلى",
+    "reset": "إعادة تعيين",
+    "search": "الاسم أو الهاتف…"
+  },
+  "actions": {
+    "details": "عرض التفاصيل",
+    "confirm": "تأكيد",
+    "cancel": "إلغاء الطلب",
+    "convert": "إنشاء زبون",
+    "call": "اتصال",
+    "whatsapp": "واتساب",
+    "delete": "حذف"
+  },
+  "toast": {
+    "confirmed": "تم تأكيد الطلب {number}.",
+    "cancelled": "تم إلغاء الطلب {number}.",
+    "deleted": "تم حذف الطلب."
+  },
+  "confirmTitle": "تأكيد هذا الطلب؟",
+  "confirmText": "سيصبح الطلب {number} في حالة «مؤكد».",
+  "cancelTitle": "إلغاء هذا الطلب؟",
+  "cancelText": "سيصبح الطلب {number} في حالة «ملغى».",
+  "detailsTitle": "الطلب {number}",
+  "createdAt": "تاريخ الاستلام",
+  "confirmedAt": "تاريخ التأكيد",
+  "cancelledAt": "تاريخ الإلغاء",
+  "noItem": "غير محدد",
+  "recipe": "وصفة",
+  "pack": "باقة",
+  "empty": "لا توجد طلبات تطابق معاييرك.",
+  "emptyTitle": "لا توجد طلبات بعد",
+  "whatsappMessage": "مرحبًا {name}، لقد استلمنا طلبك {number} على {site}."
+}

@@ -1,0 +1,46 @@
+"use client";
+
+import { useCan } from "@/components/shared/staff-permissions";
+import { useMemo } from "react";
+import Link from "next/link";
+import { useTranslations } from "next-intl";
+import type { ColumnDef } from "@tanstack/react-table";
+import { UserPlus, Users } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/basic";
+import { DataTable } from "@/components/shared/data-table";
+import { EmptyState } from "@/components/shared/page-header";
+import { normalizeSearch, padSerial } from "@/lib/utils";
+import { ClientRowMenu } from "./client-menu";
+
+export type ClientRow = { id: string; serialNumber: number; fullName: string; phone: string; address: string; username: string; permissions: number };
+
+export function ClientsTable({ rows }: { rows: ClientRow[] }) {
+  const t = useTranslations("clients");
+  const tc = useTranslations("common");
+  const can = useCan();
+  const columns = useMemo<ColumnDef<ClientRow, unknown>[]>(() => [
+    { id: "serial", accessorKey: "serialNumber", header: t("serial"), meta: { className: "w-20" },
+      cell: ({ row }) => <span className="font-mono text-sm font-semibold text-primary">{padSerial(row.original.serialNumber)}</span> },
+    { id: "fullName", accessorKey: "fullName", header: t("fullName"),
+      cell: ({ row }) => <Link href={`/admin/clients/${row.original.id}`} className="font-medium hover:text-primary hover:underline">{row.original.fullName}</Link> },
+    { id: "phone", accessorKey: "phone", header: t("phone"), cell: ({ row }) => <a href={`tel:${row.original.phone}`} dir="ltr" className="whitespace-nowrap hover:text-primary">{row.original.phone}</a> },
+    { id: "address", accessorKey: "address", header: t("address"), enableSorting: false, meta: { className: "hidden xl:table-cell" },
+      cell: ({ row }) => <span className="line-clamp-1 max-w-xs text-muted-foreground">{row.original.address || "—"}</span> },
+    { id: "username", accessorKey: "username", header: t("username"), meta: { className: "hidden md:table-cell" },
+      cell: ({ row }) => <span className="font-mono text-xs" dir="ltr">{row.original.username}</span> },
+    { id: "permissions", accessorKey: "permissions", header: t("permittedRecipes"),
+      cell: ({ row }) => <Badge variant={row.original.permissions ? "default" : "secondary"}>{tc("recipesCount", { count: row.original.permissions })}</Badge> },
+    { id: "actions", header: () => <span className="sr-only">{tc("actions")}</span>, enableSorting: false, meta: { className: "w-14 text-end" },
+      cell: ({ row }) => <ClientRowMenu client={row.original} /> },
+  ], [t, tc]);
+
+  if (rows.length === 0) {
+    return <EmptyState icon={<Users />} title={t("emptyTitle")} description={t("emptyText")}
+      action={can("clients.create") ? <Button asChild><Link href="/admin/clients/new"><UserPlus />{t("new")}</Link></Button> : undefined} />;
+  }
+  return (
+    <DataTable columns={columns} data={rows} initialSorting={[{ id: "serial", desc: true }]}
+      globalFilterFn={(c, q) => [c.fullName, c.phone, c.address, c.username, padSerial(c.serialNumber)].some((v) => normalizeSearch(v).includes(q))} />
+  );
+}

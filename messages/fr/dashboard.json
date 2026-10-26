@@ -1,0 +1,25 @@
+{
+  "title": "Tableau de bord",
+  "greeting": "Bonjour, {name}",
+  "subtitle": "Voici un aperçu de votre activité.",
+  "stats": {
+    "products": "Produits",
+    "recipes": "Recettes",
+    "packs": "Packs",
+    "clients": "Clients",
+    "pendingOrders": "Commandes en attente",
+    "confirmedOrders": "Commandes confirmées"
+  },
+  "latestOrders": "Dernières commandes",
+  "recentRecipes": "Recettes récentes",
+  "ordersPerMonth": "Commandes par mois",
+  "ordersPerMonthHint": "Sur les 6 derniers mois",
+  "seeAll": "Tout voir",
+  "noOrders": "Aucune commande pour le moment.",
+  "noRecipes": "Aucune recette pour le moment.",
+  "quickActions": "Actions rapides",
+  "newRecipe": "Nouvelle recette",
+  "newClient": "Nouveau client",
+  "newProduct": "Nouveau produit",
+  "orders": "Commandes"
+}

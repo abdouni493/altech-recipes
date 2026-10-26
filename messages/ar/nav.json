@@ -1,0 +1,32 @@
+{
+  "admin": {
+    "dashboard": "لوحة التحكم",
+    "products": "المنتجات",
+    "recipes": "الوصفات",
+    "packs": "الباقات",
+    "clients": "الزبائن",
+    "orders": "الطلبات",
+    "website": "إدارة الموقع",
+    "settings": "الإعدادات",
+    "area": "فضاء المسؤول",
+    "workers": "الموظفون"
+  },
+  "client": {
+    "recipes": "وصفاتي",
+    "calculator": "الحاسبة",
+    "favorites": "المفضلة",
+    "history": "السجل",
+    "help": "المساعدة",
+    "account": "حسابي",
+    "area": "فضاء الزبون"
+  },
+  "site": {
+    "home": "الرئيسية",
+    "recipes": "الوصفات",
+    "order": "اطلب الآن",
+    "contact": "اتصل بنا",
+    "clientArea": "فضاء الزبون",
+    "login": "تسجيل الدخول",
+    "myArea": "فضائي"
+  }
+}
