@@ -28,7 +28,8 @@
     "packs": "الباقات",
     "clients": "الزبائن",
     "orders": "الطلبات",
-    "website": "الموقع"
+    "website": "الموقع",
+    "suppliers": "الموردون"
   },
   "perm": {
     "dashboard_view": "عرض لوحة التحكم",
@@ -53,6 +54,10 @@
     "orders_edit": "تغيير حالة الطلبات",
     "orders_delete": "حذف طلبات",
     "website_view": "عرض الموقع",
-    "website_edit": "تعديل الموقع"
+    "website_edit": "تعديل الموقع",
+    "suppliers_view": "عرض الموردين",
+    "suppliers_create": "إضافة موردين",
+    "suppliers_edit": "تعديل الموردين",
+    "suppliers_delete": "حذف موردين"
   }
 }

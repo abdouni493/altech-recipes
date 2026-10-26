@@ -7,7 +7,7 @@ import { useTranslations } from "next-intl";
 import { motion, useReducedMotion } from "framer-motion";
 import {
   BookOpen, Boxes, Calculator, ChevronsLeft, ExternalLink, FlaskConical, Globe, Heart, History, LayoutDashboard,
-  LifeBuoy, LogOut, Menu, Package, Settings, ShieldCheck, ShoppingBag, UserRound, Users, type LucideIcon,
+  LifeBuoy, LogOut, Menu, Package, Settings, ShieldCheck, ShoppingBag, Truck, UserRound, Users, type LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/primitives";
@@ -33,6 +33,7 @@ const NAV: Record<Area, NavItem[]> = {
     { href: "/admin/recipes", key: "recipes", icon: BookOpen },
     { href: "/admin/packs", key: "packs", icon: Boxes },
     { href: "/admin/clients", key: "clients", icon: Users },
+    { href: "/admin/suppliers", key: "suppliers", icon: Truck },
     { href: "/admin/orders", key: "orders", icon: ShoppingBag, badge: "pendingOrders" },
     { href: "/admin/website", key: "website", icon: Globe },
     { href: "/admin/workers", key: "workers", icon: ShieldCheck },
@@ -43,6 +44,7 @@ const NAV: Record<Area, NavItem[]> = {
     { href: "/client/calculator", key: "calculator", icon: Calculator },
     { href: "/client/favorites", key: "favorites", icon: Heart },
     { href: "/client/history", key: "history", icon: History },
+    { href: "/client/suppliers", key: "suppliers", icon: Truck },
     { href: "/client/help", key: "help", icon: LifeBuoy },
     { href: "/client/account", key: "account", icon: UserRound },
   ],

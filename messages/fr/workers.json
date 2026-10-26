@@ -28,7 +28,8 @@
     "packs": "Packs",
     "clients": "Clients",
     "orders": "Commandes",
-    "website": "Site web"
+    "website": "Site web",
+    "suppliers": "Fournisseurs"
   },
   "perm": {
     "dashboard_view": "Voir le tableau de bord",
@@ -53,6 +54,10 @@
     "orders_edit": "Changer le statut des commandes",
     "orders_delete": "Supprimer des commandes",
     "website_view": "Voir le site web",
-    "website_edit": "Modifier le site web"
+    "website_edit": "Modifier le site web",
+    "suppliers_view": "Voir les fournisseurs",
+    "suppliers_create": "Ajouter des fournisseurs",
+    "suppliers_edit": "Modifier les fournisseurs",
+    "suppliers_delete": "Supprimer des fournisseurs"
   }
 }

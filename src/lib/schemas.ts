@@ -1,7 +1,7 @@
 // Domain zod schemas shared by client forms and server actions.
 import { z } from "zod";
 import {
-  idField, imageUrlField, optionalText, positiveNumber, requiredText, V,
+  optionalPhoneField, phoneField, idField, imageUrlField, optionalText, positiveNumber, requiredText, V,
 } from "@/lib/validators";
 
 export const DIMENSIONS = ["VOLUME", "MASS", "COUNT", "OTHER"] as const;
@@ -56,6 +56,15 @@ export const packSchema = z.object({
   recipeIds: z.array(z.string().min(1)).min(1, V.atLeastOneRecipe),
 });
 export type PackInput = z.input<typeof packSchema>;
+
+export const supplierSchema = z.object({
+  fullName: requiredText(120),
+  address: optionalText(300),
+  phone: phoneField,
+  phone2: optionalPhoneField,
+  productIds: z.array(z.string().min(1)).default([]),
+});
+export type SupplierInput = z.input<typeof supplierSchema>;
 
 /** Known symbols → dimension & factor, used to prefill the inline unit dialog. */
 export const KNOWN_UNITS: Record<string, { dimension: (typeof DIMENSIONS)[number]; factor: number }> = {

@@ -9,6 +9,7 @@ export const PERMISSION_GROUPS = {
   clients: ["clients.view", "clients.create", "clients.edit", "clients.permissions", "clients.delete"],
   orders: ["orders.view", "orders.edit", "orders.delete"],
   website: ["website.view", "website.edit"],
+  suppliers: ["suppliers.view", "suppliers.create", "suppliers.edit", "suppliers.delete"],
 } as const;
 
 export type PermissionGroup = keyof typeof PERMISSION_GROUPS;
@@ -39,6 +40,7 @@ export const STAFF_PAGES: { href: string; perm: Permission | "ADMIN" | null }[] 
   { href: "/admin/recipes", perm: "recipes.view" },
   { href: "/admin/packs", perm: "packs.view" },
   { href: "/admin/clients", perm: "clients.view" },
+  { href: "/admin/suppliers", perm: "suppliers.view" },
   { href: "/admin/orders", perm: "orders.view" },
   { href: "/admin/website", perm: "website.view" },
   { href: "/admin/workers", perm: "ADMIN" },

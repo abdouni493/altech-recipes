@@ -9,7 +9,8 @@
     "website": "Gestion du site",
     "settings": "Paramètres",
     "area": "Espace administrateur",
-    "workers": "Employés"
+    "workers": "Employés",
+    "suppliers": "Fournisseurs"
   },
   "client": {
     "recipes": "Mes recettes",
@@ -18,7 +19,8 @@
     "history": "Historique",
     "help": "Aide",
     "account": "Mon compte",
-    "area": "Espace client"
+    "area": "Espace client",
+    "suppliers": "Fournisseurs"
   },
   "site": {
     "home": "Accueil",

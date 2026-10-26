@@ -1,7 +1,7 @@
 // Messages are split per namespace: messages/<locale>/<namespace>.json
 export const namespaces = [
   "common", "validation", "nav", "auth", "dashboard", "units", "products", "recipes", "packs",
-  "clients", "orders", "website", "settings", "portal", "calculator", "site", "workers",
+  "clients", "orders", "website", "settings", "portal", "calculator", "site", "workers", "suppliers",
 ] as const;
 
 export async function loadMessages(locale: string) {
