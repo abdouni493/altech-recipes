@@ -2,7 +2,8 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { getLocale, getTranslations } from "next-intl/server";
 import { ArrowRight, BookOpen, Boxes, CheckCircle2, Clock, FlaskConical, Plus, Users } from "lucide-react";
-import { prisma } from "@/lib/prisma";
+import { countOf, db, n, q } from "@/lib/db";
+import type { Order, Pack, Recipe, Unit } from "@/lib/db-types";
 import { redirect } from "next/navigation";
 import { staffPageGuard } from "@/lib/authz";
 import { hasPermission, staffHome } from "@/lib/permissions";
@@ -27,20 +28,27 @@ export default async function DashboardPage() {
   const tc = await getTranslations("common");
   const locale = await getLocale();
 
+  const count = (table: string) => countOf(db().from(table).select("*", { count: "exact", head: true })).catch(() => 0);
   const sixMonthsAgo = new Date();
   sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 5, 1);
   sixMonthsAgo.setHours(0, 0, 0, 0);
 
   const [products, recipes, packs, clients, pending, confirmed, latestOrders, recentRecipes, chartOrders] = await Promise.all([
-    prisma.product.count(),
-    prisma.recipe.count(),
-    prisma.pack.count(),
-    prisma.client.count(),
-    prisma.order.count({ where: { status: "PENDING" } }),
-    prisma.order.count({ where: { status: "CONFIRMED" } }),
-    prisma.order.findMany({ orderBy: { createdAt: "desc" }, take: 6, include: { recipe: true, pack: true } }),
-    prisma.recipe.findMany({ orderBy: { createdAt: "desc" }, take: 5, include: { outputUnit: true, _count: { select: { ingredients: true } } } }),
-    prisma.order.findMany({ where: { createdAt: { gte: sixMonthsAgo } }, select: { createdAt: true } }),
+    // A worker only sees the modules their permissions allow (RLS): anything else counts as empty.
+    count("products"),
+    count("recipes"),
+    count("packs"),
+    count("clients"),
+    countOf(db().from("orders").select("id", { count: "exact", head: true }).eq("status", "PENDING")).catch(() => 0),
+    countOf(db().from("orders").select("id", { count: "exact", head: true }).eq("status", "CONFIRMED")).catch(() => 0),
+    q<(Order & { recipe: Recipe | null; pack: Pack | null })[]>(
+      db().from("orders").select("*, recipe:recipes(*), pack:packs(*)").order("created_at", { ascending: false }).limit(6),
+    ).catch(() => []),
+    q<(Recipe & { outputUnit: Unit; ingredients: unknown })[]>(
+      db().from("recipes").select("*, outputUnit:units!recipes_output_unit_id_fkey(*), ingredients:recipe_ingredients(count)")
+        .order("created_at", { ascending: false }).limit(5),
+    ).catch(() => []),
+    q<{ createdAt: string }[]>(db().from("orders").select("created_at").gte("created_at", sixMonthsAgo.toISOString())).catch(() => []),
   ]);
 
   const months = Array.from({ length: 6 }, (_, i) => {
@@ -50,7 +58,7 @@ export default async function DashboardPage() {
   });
   const chartData = months.map((m) => ({
     month: formatMonth(m, locale),
-    count: chartOrders.filter((o) => o.createdAt.getFullYear() === m.getFullYear() && o.createdAt.getMonth() === m.getMonth()).length,
+    count: chartOrders.map((o) => new Date(o.createdAt)).filter((d) => d.getFullYear() === m.getFullYear() && d.getMonth() === m.getMonth()).length,
   }));
 
   const stats = [
@@ -116,7 +124,7 @@ export default async function DashboardPage() {
                 <div className="min-w-0 flex-1">
                   <div className="truncate font-medium">{lname(r, locale)}</div>
                   <div className="text-xs text-muted-foreground">
-                    {tc("ingredientsCount", { count: r._count.ingredients })} · {formatNumber(toNumber(r.outputQuantity), locale)} {r.outputUnit.symbol}
+                    {tc("ingredientsCount", { count: n(r.ingredients) })} · {formatNumber(toNumber(r.outputQuantity), locale)} {r.outputUnit.symbol}
                   </div>
                 </div>
               </Link>

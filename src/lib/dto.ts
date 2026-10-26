@@ -1,5 +1,5 @@
 // Plain serializable shapes passed from server components to client components.
-import type { Unit } from "@prisma/client";
+import type { Unit } from "@/lib/db-types";
 import { toNumber } from "@/lib/utils";
 
 export type UnitDTO = { id: string; name: string; nameAr: string; symbol: string; dimension: string; factor: number };

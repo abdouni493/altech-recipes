@@ -1,9 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { prisma } from "@/lib/prisma";
+import { db, q, snake } from "@/lib/db";
 import { requireStaff } from "@/lib/authz";
-import { runAction } from "@/lib/action-utils";
+import { isForeignKey, runAction } from "@/lib/action-utils";
 import { packSchema, type PackInput } from "@/lib/schemas";
 import { zodFieldErrors, type ActionResult } from "@/lib/validators";
 
@@ -13,27 +13,26 @@ export async function savePackAction(id: string | null, input: PackInput): Promi
     const parsed = packSchema.safeParse(input);
     if (!parsed.success) return { ok: false, error: "validation.invalid", fieldErrors: zodFieldErrors(parsed.error) };
     const { recipeIds, ...data } = parsed.data;
-    const ids = Array.from(new Set(recipeIds));
-    const found = await prisma.recipe.count({ where: { id: { in: ids } } });
-    if (found !== ids.length) return { ok: false, error: "validation.invalidSelection" };
-    const pack = await prisma.$transaction(async (tx) => {
-      if (id) {
-        await tx.packRecipe.deleteMany({ where: { packId: id } });
-        return tx.pack.update({ where: { id }, data: { ...data, recipes: { create: ids.map((recipeId) => ({ recipeId })) } } });
-      }
-      return tx.pack.create({ data: { ...data, recipes: { create: ids.map((recipeId) => ({ recipeId })) } } });
-    });
-    revalidatePath("/admin", "layout");
-    revalidatePath("/", "layout");
-    return { ok: true, data: { id: pack.id, name: pack.name } };
+    try {
+      // save_pack() writes the pack and its recipes in one transaction.
+      const pack = await q<{ id: string; name: string }>(
+        db().rpc("save_pack", { p_id: id, p_data: snake(data), p_recipe_ids: Array.from(new Set(recipeIds)) }),
+      );
+      revalidatePath("/admin", "layout");
+      revalidatePath("/", "layout");
+      return { ok: true, data: pack };
+    } catch (e) {
+      if (isForeignKey(e)) return { ok: false, error: "validation.invalidSelection" };
+      throw e;
+    }
   });
 }
 
 export async function deletePackAction(id: string): Promise<ActionResult> {
   return runAction(async () => {
     await requireStaff("packs.delete");
-    // Permissions keep the recipe access; only the pack reference is cleared (onDelete: SetNull).
-    await prisma.pack.delete({ where: { id } });
+    // Permissions keep the recipe access; only the pack reference is cleared (on delete set null).
+    await q(db().from("packs").delete().eq("id", id));
     revalidatePath("/admin", "layout");
     revalidatePath("/", "layout");
     return { ok: true };

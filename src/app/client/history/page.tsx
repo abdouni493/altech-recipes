@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { getLocale, getTranslations } from "next-intl/server";
 import { clientPageGuard } from "@/lib/authz";
-import { prisma } from "@/lib/prisma";
+import { db, q } from "@/lib/db";
+import type { CalculationHistory, Recipe, Unit } from "@/lib/db-types";
 import { PageHeader } from "@/components/shared/page-header";
 import { formatDate, formatNumber } from "@/lib/format";
 import { lname } from "@/lib/i18n-data";
@@ -17,11 +18,13 @@ export default async function HistoryPage() {
   const t = await getTranslations("portal");
   const locale = await getLocale();
   const [items, perms] = await Promise.all([
-    prisma.calculationHistory.findMany({ where: { clientId: client.id }, orderBy: { createdAt: "desc" }, take: 100, include: { recipe: true, unit: true } }),
-    prisma.clientPermission.findMany({ where: { clientId: client.id }, select: { recipeId: true } }),
+    q<(CalculationHistory & { recipe: Recipe | null; unit: Unit })[]>(
+      db().from("calculation_history").select("*, recipe:recipes(*), unit:units(*)").eq("client_id", client.id).order("created_at", { ascending: false }).limit(100),
+    ),
+    q<{ recipeId: string }[]>(db().from("client_permissions").select("recipe_id").eq("client_id", client.id)),
   ]);
   const allowed = new Set(perms.map((p) => p.recipeId));
-  const rows = items.filter((h) => allowed.has(h.recipeId)).map((h) => ({
+  const rows = items.filter((h): h is typeof h & { recipe: Recipe } => Boolean(h.recipe) && allowed.has(h.recipeId)).map((h) => ({
     id: h.id, recipeId: h.recipeId, recipeName: lname(h.recipe, locale), imageUrl: h.recipe.imageUrl,
     target: `${formatNumber(toNumber(h.targetQuantity), locale)} ${h.unit.symbol}`,
     href: `/client/calculator?recipe=${h.recipeId}&qty=${toNumber(h.targetQuantity)}&unit=${h.unitId}`,

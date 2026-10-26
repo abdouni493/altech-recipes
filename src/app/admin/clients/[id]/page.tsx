@@ -4,7 +4,8 @@ import { notFound } from "next/navigation";
 import { getLocale, getTranslations } from "next-intl/server";
 import { Calculator, Heart, Languages, MapPin, MessageCircle, Phone, UserRound } from "lucide-react";
 import { staffPageGuard } from "@/lib/authz";
-import { prisma } from "@/lib/prisma";
+import { db, n, q } from "@/lib/db";
+import type { Client, ClientPermission, Pack, Profile, Recipe } from "@/lib/db-types";
 import { PageHeader } from "@/components/shared/page-header";
 import { Badge, Card, CardContent, CardHeader, CardTitle } from "@/components/ui/basic";
 import { Thumb } from "@/components/shared/thumb";
@@ -14,7 +15,7 @@ import { padSerial, whatsappLink } from "@/lib/utils";
 import { ClientDetailActions } from "../client-menu";
 
 export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
-  const c = await prisma.client.findUnique({ where: { id: params.id }, select: { fullName: true } });
+  const c = await q<{ fullName: string } | null>(db().from("clients").select("full_name").eq("id", params.id).maybeSingle()).catch(() => null);
   return { title: c?.fullName ?? "—" };
 }
 
@@ -23,15 +24,18 @@ export default async function ClientDetailPage({ params }: { params: { id: strin
   const t = await getTranslations("clients");
   const tc = await getTranslations("common");
   const locale = await getLocale();
-  const client = await prisma.client.findUnique({
-    where: { id: params.id },
-    include: {
-      user: true,
-      permissions: { include: { recipe: true, pack: true }, orderBy: { recipe: { name: "asc" } } },
-      _count: { select: { history: true, favorites: true } },
-    },
-  });
-  if (!client) notFound();
+  type Perm = ClientPermission & { recipe: Recipe; pack: Pack | null };
+  const row = await q<(Client & { user: Profile; permissions: Perm[]; history: unknown; favorites: unknown }) | null>(
+    db().from("clients")
+      .select("*, user:profiles(*), permissions:client_permissions(*, recipe:recipes(*), pack:packs(*)), history:calculation_history(count), favorites(count)")
+      .eq("id", params.id).maybeSingle(),
+  );
+  if (!row) notFound();
+  const client = {
+    ...row,
+    permissions: row.permissions.filter((p) => p.recipe).sort((a, b) => a.recipe.name.localeCompare(b.recipe.name)),
+    _count: { history: n(row.history), favorites: n(row.favorites) },
+  };
 
   const groups = new Map<string, { label: string; items: typeof client.permissions }>();
   for (const p of client.permissions) {

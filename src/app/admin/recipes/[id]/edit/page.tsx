@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { staffPageGuard } from "@/lib/authz";
-import { prisma } from "@/lib/prisma";
+import { db, q } from "@/lib/db";
+import type { Recipe, RecipeIngredient } from "@/lib/db-types";
 import { getProductsDTO, getUnitsDTO } from "@/lib/queries";
 import { PageHeader } from "@/components/shared/page-header";
 import { UnitsProvider } from "@/components/shared/units";
@@ -16,7 +17,9 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function EditRecipePage({ params }: { params: { id: string } }) {
   await staffPageGuard("recipes.edit");
   const t = await getTranslations("recipes");
-  const recipe = await prisma.recipe.findUnique({ where: { id: params.id }, include: { ingredients: { orderBy: { position: "asc" } } } });
+  const recipe = await q<(Recipe & { ingredients: RecipeIngredient[] }) | null>(
+    db().from("recipes").select("*, ingredients:recipe_ingredients(*)").eq("id", params.id).maybeSingle(),
+  );
   if (!recipe) notFound();
   const [products, units] = await Promise.all([getProductsDTO(), getUnitsDTO()]);
   return (
@@ -29,7 +32,7 @@ export default async function EditRecipePage({ params }: { params: { id: string 
           name: recipe.name, nameAr: recipe.nameAr, description: recipe.description, descriptionAr: recipe.descriptionAr,
           imageUrl: recipe.imageUrl, isVisibleOnWebsite: recipe.isVisibleOnWebsite,
           outputQuantity: toNumber(recipe.outputQuantity), outputUnitId: recipe.outputUnitId,
-          ingredients: recipe.ingredients.map((i) => ({ productId: i.productId, quantity: toNumber(i.quantity), unitId: i.unitId })),
+          ingredients: [...recipe.ingredients].sort((a, b) => a.position - b.position).map((i) => ({ productId: i.productId, quantity: toNumber(i.quantity), unitId: i.unitId })),
         }}
       />
     </UnitsProvider>

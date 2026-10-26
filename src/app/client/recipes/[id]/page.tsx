@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { getLocale, getTranslations } from "next-intl/server";
 import { Beaker, Calculator } from "lucide-react";
 import { clientPageGuard, getSessionUser } from "@/lib/authz";
-import { prisma } from "@/lib/prisma";
+import { db, q } from "@/lib/db";
 import { getPermittedRecipe } from "@/lib/portal-queries";
 import { PageHeader } from "@/components/shared/page-header";
 import { Badge, Card, CardContent, CardHeader, CardTitle } from "@/components/ui/basic";
@@ -18,7 +18,7 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
   // Only reveal the name to a client who has access.
   const user = await getSessionUser();
   if (!user) return {};
-  const client = await prisma.client.findUnique({ where: { userId: user.id } });
+  const client = await q<{ id: string } | null>(db().from("clients").select("id").eq("user_id", user.id).maybeSingle()).catch(() => null);
   if (!client) return {};
   const r = await getPermittedRecipe(client.id, params.id);
   return { title: r?.name };

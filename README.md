@@ -11,15 +11,19 @@ UI in French (default) and Arabic (RTL), light and dark theme.
 ## Setup
 
 1. **Database.** In Supabase → SQL Editor, run the whole file [`supabase/schema.sql`](supabase/schema.sql). It creates every table and relation, the row-level security policies, the account functions (accounts live in `auth.users`), and the public image buckets `products`, `recipes`, `packs` and `site`. It is safe to re-run.
-2. **Environment.** Copy `.env.example` to `.env.local` and fill in:
-   - `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` (Project Settings → API)
-   - `DATABASE_URL` (transaction pooler, port 6543, keep `?pgbouncer=true`) from Project Settings → Database → Connect, with your database password. On Vercel, set the same variables in Project → Settings → Environment Variables, then open `/api/health` to check the connection and the schema.
+2. **Environment.** Only two Supabase values are needed (Project Settings → API). Copy `.env.example` to `.env.local` (and set the same variables on Vercel):
+   - `NEXT_PUBLIC_SUPABASE_URL`, e.g. `https://yzjihcjnwtyigkpzrlro.supabase.co`
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+
+   No database connection string is used: the app talks to Supabase with the anon key and each user's session. Row Level Security and the SQL functions in `schema.sql` (section 9) enforce roles and worker permissions. Open `/api/health` to check the setup.
 3. **Run.**
    ```bash
    npm install
    npm run dev
    ```
 4. **First admin.** Open `/login` and click **Créer le compte administrateur**. The button disappears for good once the admin exists (the database refuses a second one).
+
+After pulling a new version, re-run `supabase/schema.sql`: it is idempotent and adds any new tables, policies or functions.
 
 ## Roles
 
@@ -44,4 +48,4 @@ Uploads are compressed in the browser with `browser-image-compression` (WebP whe
 | `npm run typecheck` | TypeScript check |
 | `npm run i18n:check` | Verify that `fr` and `ar` define the same keys |
 
-`prisma/schema.prisma` only mirrors `supabase/schema.sql` for the Prisma client. Never run `prisma db push` or migrations against it.
+To start over without accounts, run `supabase/reset-users.sql`.

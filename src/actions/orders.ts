@@ -3,14 +3,11 @@
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { orderSchema, type OrderInput } from "@/lib/order-schema";
-import { prisma } from "@/lib/prisma";
+import { db, q } from "@/lib/db";
 import { requireStaff } from "@/lib/authz";
 import { runAction } from "@/lib/action-utils";
 import { findWilaya } from "@/lib/algeria";
 import { V, zodFieldErrors, type ActionResult } from "@/lib/validators";
-import { padSerial } from "@/lib/utils";
-
-
 
 // Simple in-memory rate limit: 5 orders / 10 minutes per IP.
 const hits = new Map<string, number[]>();
@@ -35,29 +32,15 @@ export async function createOrderAction(input: OrderInput): Promise<ActionResult
     const commune = wilaya.communes.find((c) => c.fr === d.communeName);
     if (!commune) return { ok: false, error: "site.orderError", fieldErrors: { communeName: V.selectCommune } };
 
-    let recipeId: string | null = null;
-    let packId: string | null = null;
     const [kind, id] = d.item.split(":");
-    if (kind === "recipe" && id) {
-      const r = await prisma.recipe.findFirst({ where: { id, isVisibleOnWebsite: true }, select: { id: true } });
-      recipeId = r?.id ?? null;
-    } else if (kind === "pack" && id) {
-      const p = await prisma.pack.findUnique({ where: { id }, select: { id: true } });
-      packId = p?.id ?? null;
-    }
-
-    const order = await prisma.$transaction(async (tx) => {
-      const counter = await tx.counter.upsert({ where: { name: "order" }, create: { name: "order", value: 1 }, update: { value: { increment: 1 } } });
-      return tx.order.create({
-        data: {
-          orderNumber: `CMD-${new Date().getFullYear()}-${padSerial(counter.value)}`,
-          fullName: d.fullName, phone: d.phone, wilayaCode: wilaya.code, wilayaName: wilaya.fr, communeName: commune.fr,
-          recipeId, packId, message: d.message, wantsClientAccount: d.wantsClientAccount,
-        },
-      });
-    });
+    // create_order() keeps the recipe only when it is visible on the website, and the pack only when it exists.
+    const orderNumber = await q<string>(db().rpc("create_order", {
+      p_full_name: d.fullName, p_phone: d.phone, p_wilaya_code: wilaya.code, p_wilaya_name: wilaya.fr, p_commune_name: commune.fr,
+      p_recipe_id: kind === "recipe" && id ? id : null, p_pack_id: kind === "pack" && id ? id : null,
+      p_message: d.message, p_wants_client_account: d.wantsClientAccount,
+    }));
     revalidatePath("/admin", "layout");
-    return { ok: true, data: { orderNumber: order.orderNumber } };
+    return { ok: true, data: { orderNumber } };
   });
 }
 
@@ -65,14 +48,14 @@ export async function setOrderStatusAction(id: string, status: "CONFIRMED" | "CA
   return runAction(async () => {
     await requireStaff("orders.edit");
     if (!["CONFIRMED", "CANCELLED", "PENDING"].includes(status)) return { ok: false, error: "validation.invalid" };
-    const order = await prisma.order.update({
-      where: { id },
-      data: {
+    const now = new Date().toISOString();
+    const order = await q<{ orderNumber: string }>(
+      db().from("orders").update({
         status,
-        confirmedAt: status === "CONFIRMED" ? new Date() : null,
-        cancelledAt: status === "CANCELLED" ? new Date() : null,
-      },
-    });
+        confirmed_at: status === "CONFIRMED" ? now : null,
+        cancelled_at: status === "CANCELLED" ? now : null,
+      }).eq("id", id).select("order_number").single(),
+    );
     revalidatePath("/admin", "layout");
     return { ok: true, data: { orderNumber: order.orderNumber } };
   });
@@ -81,7 +64,7 @@ export async function setOrderStatusAction(id: string, status: "CONFIRMED" | "CA
 export async function deleteOrderAction(id: string): Promise<ActionResult> {
   return runAction(async () => {
     await requireStaff("orders.delete");
-    await prisma.order.delete({ where: { id } });
+    await q(db().from("orders").delete().eq("id", id));
     revalidatePath("/admin", "layout");
     return { ok: true };
   });

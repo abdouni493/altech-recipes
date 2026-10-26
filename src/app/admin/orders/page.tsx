@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { getLocale, getTranslations } from "next-intl/server";
 import { staffPageGuard } from "@/lib/authz";
-import { prisma } from "@/lib/prisma";
+import { db, q } from "@/lib/db";
+import type { Order, Pack, Recipe } from "@/lib/db-types";
 import { PageHeader } from "@/components/shared/page-header";
 import { getSiteSettings, localized } from "@/lib/site";
 import { findWilaya } from "@/lib/algeria";
@@ -17,7 +18,7 @@ export default async function OrdersPage() {
   const t = await getTranslations("orders");
   const locale = await getLocale();
   const [orders, settings] = await Promise.all([
-    prisma.order.findMany({ orderBy: { createdAt: "desc" }, include: { recipe: true, pack: true } }),
+    q<(Order & { recipe: Recipe | null; pack: Pack | null })[]>(db().from("orders").select("*, recipe:recipes(*), pack:packs(*)").order("created_at", { ascending: false })),
     getSiteSettings(),
   ]);
   const rows: OrderRow[] = orders.map((o) => {
@@ -29,7 +30,7 @@ export default async function OrdersPage() {
       communeName: commune ? (locale === "ar" ? commune.ar : commune.fr) : o.communeName,
       item: o.recipe ? { kind: "recipe", name: lname(o.recipe, locale) } : o.pack ? { kind: "pack", name: lname(o.pack, locale) } : null,
       message: o.message, wantsClientAccount: o.wantsClientAccount, status: o.status as OrderRow["status"],
-      createdAt: o.createdAt.toISOString(), confirmedAt: o.confirmedAt?.toISOString() ?? null, cancelledAt: o.cancelledAt?.toISOString() ?? null,
+      createdAt: o.createdAt, confirmedAt: o.confirmedAt, cancelledAt: o.cancelledAt,
     };
   });
   return (

@@ -11,6 +11,7 @@
 --   6. Row Level Security policies
 --   7. Storage buckets (images) + storage policies
 --   8. Singleton rows (site settings, contacts, counters)
+--   9. App RPC functions (called by the app with the anon key + user session)
 --
 -- Roles
 --   ADMIN  : everything. Exactly one can be created from the login page (first-run setup);
@@ -22,6 +23,7 @@
 
 -- 1. Extensions ------------------------------------------------------------------------
 create extension if not exists pgcrypto with schema extensions;
+create extension if not exists unaccent with schema extensions;
 
 -- 2. Tables ----------------------------------------------------------------------------
 
@@ -443,7 +445,8 @@ begin
 end $$;
 
 -- profiles: everyone reads their own row; the admin manages all accounts.
-create policy profiles_self_read   on public.profiles for select to authenticated using (id = auth.uid() or public.is_admin());
+create policy profiles_self_read   on public.profiles for select to authenticated
+  using (id = auth.uid() or public.is_admin() or (role = 'CLIENT' and public.has_permission('clients.view')));
 create policy profiles_admin_write on public.profiles for all    to authenticated using (public.is_admin()) with check (public.is_admin());
 
 -- units: read by staff and clients (calculator); written by catalog staff.
@@ -453,14 +456,18 @@ create policy units_write on public.units for all to authenticated
   with check (public.has_permission('products.create') or public.has_permission('products.edit') or public.has_permission('recipes.create') or public.has_permission('recipes.edit'));
 
 -- products
-create policy products_read   on public.products for select to authenticated using (public.has_permission('products.view') or public.has_permission('recipes.view'));
+create policy products_read   on public.products for select to authenticated using (
+  public.has_permission('products.view') or public.has_permission('recipes.view')
+  or exists (select 1 from public.recipe_ingredients ri where ri.product_id = products.id and public.client_can_see_recipe(ri.recipe_id)));
 create policy products_insert on public.products for insert to authenticated with check (public.has_permission('products.create'));
 create policy products_update on public.products for update to authenticated using (public.has_permission('products.edit')) with check (public.has_permission('products.edit'));
 create policy products_delete on public.products for delete to authenticated using (public.has_permission('products.delete'));
 
 -- recipes: public catalog sees visible recipes (name/description/image — formulas live in recipe_ingredients).
 create policy recipes_public_read on public.recipes for select to anon, authenticated using (is_visible_on_website);
-create policy recipes_staff_read  on public.recipes for select to authenticated using (public.has_permission('recipes.view'));
+-- Recipe names/images are readable by every staff member (pack, client-access and website pages list them);
+-- the formula itself stays in recipe_ingredients, which needs recipes.view.
+create policy recipes_staff_read  on public.recipes for select to authenticated using (public.is_staff());
 create policy recipes_client_read on public.recipes for select to authenticated using (public.client_can_see_recipe(id));
 create policy recipes_insert on public.recipes for insert to authenticated with check (public.has_permission('recipes.create'));
 create policy recipes_update on public.recipes for update to authenticated using (public.has_permission('recipes.edit')) with check (public.has_permission('recipes.edit'));
@@ -489,7 +496,7 @@ create policy clients_insert on public.clients for insert to authenticated with 
 create policy clients_update on public.clients for update to authenticated using (public.has_permission('clients.edit')) with check (public.has_permission('clients.edit'));
 create policy clients_delete on public.clients for delete to authenticated using (public.has_permission('clients.delete'));
 
-create policy client_permissions_read  on public.client_permissions for select to authenticated using (public.has_permission('clients.view') or client_id = public.current_client_id());
+create policy client_permissions_read  on public.client_permissions for select to authenticated using (public.is_staff() or client_id = public.current_client_id());
 create policy client_permissions_write on public.client_permissions for all to authenticated
   using (public.has_permission('clients.permissions') or public.has_permission('clients.create'))
   with check (public.has_permission('clients.permissions') or public.has_permission('clients.create'));
@@ -571,3 +578,374 @@ insert into public.units (id, name, name_ar, symbol, dimension, factor) values
   ('unit-g',  'Gramme',     'غرام',     'g',  'MASS',   0.001),
   ('unit-pc', 'Pièce',      'قطعة',     'pc', 'COUNT',  1)
 on conflict (id) do nothing;
+
+-- 9. App RPC functions -----------------------------------------------------------------
+-- The Next.js app only has the project URL + anon key. It calls these functions through
+-- supabase.rpc() with the visitor's session; each function re-checks the caller's role and
+-- worker permissions, and runs multi-step writes in one transaction.
+
+create or replace function public.require_permission(p_key text) returns void
+language plpgsql stable security definer set search_path = public as $$
+begin
+  if not public.has_permission(p_key) then raise exception 'unauthorized' using errcode = '42501'; end if;
+end $$;
+
+-- "Youssef Abdouni", 7 → "youssefabdouni0007" (same formula as src/lib/utils.ts defaultCredential)
+create or replace function public.default_credential(p_full_name text, p_serial integer) returns text
+language sql immutable set search_path = public, extensions as $$
+  select coalesce(nullif(regexp_replace(lower(extensions.unaccent(coalesce(p_full_name, ''))), '[^a-z0-9]', '', 'g'), ''), 'client')
+         || lpad(p_serial::text, 4, '0')
+$$;
+
+-- Login: username → e-mail stored in Supabase Auth (an e-mail is returned as is).
+create or replace function public.login_email(p_identifier text) returns text
+language sql stable security definer set search_path = public, auth as $$
+  select case
+    when position('@' in p_identifier) > 0 then lower(trim(p_identifier))
+    else (select u.email from public.profiles p join auth.users u on u.id = p.id where p.username = lower(trim(p_identifier)))
+  end
+$$;
+
+create or replace function public.next_client_serial() returns integer
+language plpgsql stable security definer set search_path = public as $$
+begin
+  perform public.require_permission('clients.create');
+  return greatest(coalesce((select value from public.counters where name = 'client'), 0),
+                  coalesce((select max(serial_number) from public.clients), 0)) + 1;
+end $$;
+
+-- p_permissions: [{"recipeId": "...", "packId": "..." | null}, ...]
+create or replace function public.staff_create_client(
+  p_full_name text, p_phone text, p_address text,
+  p_auto boolean, p_username text, p_password text,
+  p_permissions jsonb, p_email_domain text
+) returns jsonb
+language plpgsql security definer set search_path = public, extensions, auth as $$
+declare
+  v_serial integer;
+  v_username text;
+  v_password text;
+  v_user uuid;
+  v_client text;
+begin
+  perform public.require_permission('clients.create');
+  perform pg_advisory_xact_lock(hashtext('client_serial'));
+  v_serial := greatest(coalesce((select value from public.counters where name = 'client'), 0),
+                       coalesce((select max(serial_number) from public.clients), 0)) + 1;
+  insert into public.counters (name, value) values ('client', v_serial)
+    on conflict (name) do update set value = excluded.value;
+
+  v_username := case when p_auto then public.default_credential(p_full_name, v_serial) else lower(trim(p_username)) end;
+  v_password := case when p_auto then public.default_credential(p_full_name, v_serial) else p_password end;
+
+  v_user := public.create_app_user(v_username || '@' || p_email_domain, v_password, v_username, p_full_name, 'CLIENT', '{}');
+  insert into public.clients (serial_number, full_name, phone, address, user_id)
+    values (v_serial, p_full_name, p_phone, coalesce(p_address, ''), v_user)
+    returning id into v_client;
+  insert into public.client_permissions (client_id, recipe_id, pack_id)
+    select v_client, x->>'recipeId', nullif(x->>'packId', '')
+    from jsonb_array_elements(coalesce(p_permissions, '[]'::jsonb)) x
+    on conflict (client_id, recipe_id) do nothing;
+
+  return jsonb_build_object('id', v_client, 'serial', v_serial, 'username', v_username, 'password', v_password);
+end $$;
+
+create or replace function public.staff_update_client(
+  p_id text, p_full_name text, p_phone text, p_address text, p_username text, p_login_email text
+) returns void
+language plpgsql security definer set search_path = public, extensions, auth as $$
+declare v_user uuid;
+begin
+  perform public.require_permission('clients.edit');
+  select user_id into v_user from public.clients where id = p_id;
+  if v_user is null then raise exception 'not found' using errcode = 'P0002'; end if;
+  if exists (select 1 from public.profiles where username = lower(trim(p_username)) and id <> v_user) then
+    raise exception 'username already used' using errcode = '23505';
+  end if;
+  perform public.set_user_email(v_user, p_login_email);
+  update public.clients set full_name = p_full_name, phone = p_phone, address = coalesce(p_address, '') where id = p_id;
+  update public.profiles set name = p_full_name, username = lower(trim(p_username)), email = lower(trim(p_login_email)) where id = v_user;
+end $$;
+
+create or replace function public.staff_reset_client_password(p_id text) returns text
+language plpgsql security definer set search_path = public, extensions, auth as $$
+declare v_client public.clients; v_password text;
+begin
+  perform public.require_permission('clients.edit');
+  select * into v_client from public.clients where id = p_id;
+  if v_client.id is null then raise exception 'not found' using errcode = 'P0002'; end if;
+  v_password := public.default_credential(v_client.full_name, v_client.serial_number);
+  perform public.set_user_password(v_client.user_id, v_password);
+  return v_password;
+end $$;
+
+create or replace function public.staff_delete_client(p_id text) returns void
+language plpgsql security definer set search_path = public, auth as $$
+declare v_user uuid;
+begin
+  perform public.require_permission('clients.delete');
+  select user_id into v_user from public.clients where id = p_id;
+  if v_user is null then raise exception 'not found' using errcode = 'P0002'; end if;
+  perform public.delete_app_user(v_user);
+end $$;
+
+-- Replaces a client's recipe access; favorites of recipes no longer permitted are removed.
+create or replace function public.set_client_permissions(p_client_id text, p_permissions jsonb) returns integer
+language plpgsql security definer set search_path = public as $$
+declare v_count integer;
+begin
+  perform public.require_permission('clients.permissions');
+  delete from public.client_permissions where client_id = p_client_id;
+  insert into public.client_permissions (client_id, recipe_id, pack_id)
+    select p_client_id, x->>'recipeId', nullif(x->>'packId', '')
+    from jsonb_array_elements(coalesce(p_permissions, '[]'::jsonb)) x
+    on conflict (client_id, recipe_id) do nothing;
+  get diagnostics v_count = row_count;
+  delete from public.favorites f where f.client_id = p_client_id
+    and not exists (select 1 from public.client_permissions cp where cp.client_id = p_client_id and cp.recipe_id = f.recipe_id);
+  return v_count;
+end $$;
+
+-- Workers (admin only)
+create or replace function public.admin_create_worker(
+  p_name text, p_username text, p_login_email text, p_password text, p_permissions text[]
+) returns uuid
+language plpgsql security definer set search_path = public, extensions, auth as $$
+declare v_id uuid;
+begin
+  if not public.is_admin() then raise exception 'unauthorized' using errcode = '42501'; end if;
+  v_id := public.create_app_user(p_login_email, p_password, p_username, p_name, 'WORKER', p_permissions);
+  return v_id;
+end $$;
+
+create or replace function public.admin_update_worker(
+  p_id uuid, p_name text, p_username text, p_email text, p_login_email text, p_password text, p_permissions text[]
+) returns void
+language plpgsql security definer set search_path = public, extensions, auth as $$
+begin
+  if not public.is_admin() then raise exception 'unauthorized' using errcode = '42501'; end if;
+  if not exists (select 1 from public.profiles where id = p_id and role = 'WORKER') then raise exception 'not found' using errcode = 'P0002'; end if;
+  if exists (select 1 from public.profiles where username = lower(trim(p_username)) and id <> p_id) then
+    raise exception 'username already used' using errcode = '23505';
+  end if;
+  perform public.set_user_email(p_id, p_login_email);
+  if coalesce(p_password, '') <> '' then perform public.set_user_password(p_id, p_password); end if;
+  update public.profiles set name = p_name, username = lower(trim(p_username)), email = nullif(trim(p_email), ''),
+    permissions = coalesce(p_permissions, '{}') where id = p_id;
+end $$;
+
+create or replace function public.admin_delete_worker(p_id uuid) returns void
+language plpgsql security definer set search_path = public, auth as $$
+begin
+  if not public.is_admin() then raise exception 'unauthorized' using errcode = '42501'; end if;
+  if not exists (select 1 from public.profiles where id = p_id and role = 'WORKER') then raise exception 'not found' using errcode = 'P0002'; end if;
+  perform public.delete_app_user(p_id);
+end $$;
+
+-- Own account (any signed-in user)
+create or replace function public.update_own_profile(p_name text, p_username text, p_email text, p_login_email text) returns void
+language plpgsql security definer set search_path = public, extensions, auth as $$
+begin
+  if auth.uid() is null then raise exception 'unauthorized' using errcode = '42501'; end if;
+  if exists (select 1 from public.profiles where username = lower(trim(p_username)) and id <> auth.uid()) then
+    raise exception 'username already used' using errcode = '23505';
+  end if;
+  perform public.set_user_email(auth.uid(), p_login_email);
+  update public.profiles set name = p_name, username = lower(trim(p_username)), email = nullif(trim(p_email), '') where id = auth.uid();
+end $$;
+
+create or replace function public.change_own_password(p_current text, p_new text) returns boolean
+language plpgsql security definer set search_path = public, extensions, auth as $$
+begin
+  if auth.uid() is null then raise exception 'unauthorized' using errcode = '42501'; end if;
+  if not public.verify_user_password(auth.uid(), p_current) then return false; end if;
+  perform public.set_user_password(auth.uid(), p_new);
+  return true;
+end $$;
+
+create or replace function public.set_my_language(p_language text) returns void
+language sql security definer set search_path = public as $$
+  update public.profiles set language = p_language where id = auth.uid() and p_language in ('fr', 'ar')
+$$;
+
+-- Recipes: p_data = {name, name_ar, description, description_ar, image_url, output_quantity, output_unit_id, is_visible_on_website}
+--          p_ingredients = [{product_id, quantity, unit_id}, ...] (array order = position)
+create or replace function public.save_recipe(p_id text, p_data jsonb, p_ingredients jsonb) returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare v_id text := p_id; v_name text;
+begin
+  if p_id is null then perform public.require_permission('recipes.create'); else perform public.require_permission('recipes.edit'); end if;
+  if v_id is null then
+    insert into public.recipes (name, name_ar, description, description_ar, image_url, output_quantity, output_unit_id, is_visible_on_website)
+    values (p_data->>'name', coalesce(p_data->>'name_ar', ''), coalesce(p_data->>'description', ''), coalesce(p_data->>'description_ar', ''),
+            nullif(p_data->>'image_url', ''), (p_data->>'output_quantity')::numeric, p_data->>'output_unit_id',
+            coalesce((p_data->>'is_visible_on_website')::boolean, true))
+    returning id into v_id;
+  else
+    update public.recipes set
+      name = p_data->>'name', name_ar = coalesce(p_data->>'name_ar', ''),
+      description = coalesce(p_data->>'description', ''), description_ar = coalesce(p_data->>'description_ar', ''),
+      image_url = nullif(p_data->>'image_url', ''), output_quantity = (p_data->>'output_quantity')::numeric,
+      output_unit_id = p_data->>'output_unit_id', is_visible_on_website = coalesce((p_data->>'is_visible_on_website')::boolean, true)
+    where id = v_id;
+    if not found then raise exception 'not found' using errcode = 'P0002'; end if;
+    delete from public.recipe_ingredients where recipe_id = v_id;
+  end if;
+  insert into public.recipe_ingredients (recipe_id, product_id, quantity, unit_id, position)
+    select v_id, x.value->>'product_id', (x.value->>'quantity')::numeric, x.value->>'unit_id', (x.ordinality - 1)::integer
+    from jsonb_array_elements(coalesce(p_ingredients, '[]'::jsonb)) with ordinality x;
+  select name into v_name from public.recipes where id = v_id;
+  return jsonb_build_object('id', v_id, 'name', v_name);
+end $$;
+
+create or replace function public.duplicate_recipe(p_id text, p_suffix text) returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare v_src public.recipes; v_id text;
+begin
+  perform public.require_permission('recipes.create');
+  select * into v_src from public.recipes where id = p_id;
+  if v_src.id is null then raise exception 'not found' using errcode = 'P0002'; end if;
+  insert into public.recipes (name, name_ar, description, description_ar, image_url, output_quantity, output_unit_id, is_visible_on_website)
+    values (v_src.name || ' ' || p_suffix, case when v_src.name_ar <> '' then v_src.name_ar || ' (نسخة)' else '' end,
+            v_src.description, v_src.description_ar, v_src.image_url, v_src.output_quantity, v_src.output_unit_id, false)
+    returning id into v_id;
+  insert into public.recipe_ingredients (recipe_id, product_id, quantity, unit_id, position)
+    select v_id, product_id, quantity, unit_id, position from public.recipe_ingredients where recipe_id = p_id;
+  return jsonb_build_object('id', v_id, 'name', v_src.name || ' ' || p_suffix);
+end $$;
+
+-- Packs: p_data = {name, name_ar, description, description_ar, image_url}
+create or replace function public.save_pack(p_id text, p_data jsonb, p_recipe_ids text[]) returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare v_id text := p_id;
+begin
+  if p_id is null then perform public.require_permission('packs.create'); else perform public.require_permission('packs.edit'); end if;
+  if v_id is null then
+    insert into public.packs (name, name_ar, description, description_ar, image_url)
+      values (p_data->>'name', coalesce(p_data->>'name_ar', ''), coalesce(p_data->>'description', ''),
+              coalesce(p_data->>'description_ar', ''), nullif(p_data->>'image_url', ''))
+      returning id into v_id;
+  else
+    update public.packs set name = p_data->>'name', name_ar = coalesce(p_data->>'name_ar', ''),
+      description = coalesce(p_data->>'description', ''), description_ar = coalesce(p_data->>'description_ar', ''),
+      image_url = nullif(p_data->>'image_url', '')
+    where id = v_id;
+    if not found then raise exception 'not found' using errcode = 'P0002'; end if;
+    delete from public.pack_recipes where pack_id = v_id;
+  end if;
+  insert into public.pack_recipes (pack_id, recipe_id) select v_id, r from unnest(coalesce(p_recipe_ids, '{}')) r on conflict do nothing;
+  return jsonb_build_object('id', v_id, 'name', p_data->>'name');
+end $$;
+
+-- Website order form (public). The server action validates the input and rate-limits first.
+create or replace function public.create_order(
+  p_full_name text, p_phone text, p_wilaya_code text, p_wilaya_name text, p_commune_name text,
+  p_recipe_id text, p_pack_id text, p_message text, p_wants_client_account boolean
+) returns text
+language plpgsql security definer set search_path = public as $$
+declare v_value integer; v_number text; v_recipe text; v_pack text;
+begin
+  select id into v_recipe from public.recipes where id = p_recipe_id and is_visible_on_website;
+  select id into v_pack from public.packs where id = p_pack_id;
+  insert into public.counters (name, value) values ('order', 1)
+    on conflict (name) do update set value = public.counters.value + 1
+    returning value into v_value;
+  v_number := 'CMD-' || extract(year from now())::int || '-' || lpad(v_value::text, 4, '0');
+  insert into public.orders (order_number, full_name, phone, wilaya_code, wilaya_name, commune_name, recipe_id, pack_id, message, wants_client_account)
+    values (v_number, left(p_full_name, 120), left(p_phone, 30), p_wilaya_code, p_wilaya_name, p_commune_name,
+            v_recipe, v_pack, left(coalesce(p_message, ''), 2000), coalesce(p_wants_client_account, false));
+  return v_number;
+end $$;
+
+-- How many rows use each unit (the units dialog blocks deleting a unit in use).
+create or replace function public.unit_usage()
+returns table (unit_id text, products bigint, ingredients bigint, recipes bigint, history bigint)
+language plpgsql stable security definer set search_path = public as $$
+begin
+  if not public.is_staff() then raise exception 'unauthorized' using errcode = '42501'; end if;
+  return query
+    select u.id,
+      (select count(*) from public.products p where p.unit_id = u.id),
+      (select count(*) from public.recipe_ingredients i where i.unit_id = u.id),
+      (select count(*) from public.recipes r where r.output_unit_id = u.id),
+      (select count(*) from public.calculation_history h where h.unit_id = u.id)
+    from public.units u;
+end $$;
+
+-- Backup restore (admin only): replaces every data table in one transaction. Accounts are kept;
+-- clients whose Supabase account no longer exists are skipped together with their rows.
+create or replace function public.restore_backup(p_data jsonb) returns integer
+language plpgsql security definer set search_path = public as $$
+declare v_count integer := 0; n integer;
+begin
+  if not public.is_admin() then raise exception 'unauthorized' using errcode = '42501'; end if;
+  delete from public.favorites; delete from public.calculation_history; delete from public.orders;
+  delete from public.client_permissions; delete from public.clients; delete from public.pack_recipes;
+  delete from public.packs; delete from public.recipe_ingredients; delete from public.recipes;
+  delete from public.products; delete from public.units; delete from public.counters;
+  delete from public.app_meta where key <> 'lastBackupAt';
+
+  insert into public.units select * from jsonb_populate_recordset(null::public.units, coalesce(p_data->'units', '[]'));
+  get diagnostics n = row_count; v_count := v_count + n;
+  insert into public.products select * from jsonb_populate_recordset(null::public.products, coalesce(p_data->'products', '[]'));
+  get diagnostics n = row_count; v_count := v_count + n;
+  insert into public.recipes select * from jsonb_populate_recordset(null::public.recipes, coalesce(p_data->'recipes', '[]'));
+  get diagnostics n = row_count; v_count := v_count + n;
+  insert into public.recipe_ingredients select * from jsonb_populate_recordset(null::public.recipe_ingredients, coalesce(p_data->'recipe_ingredients', '[]'));
+  get diagnostics n = row_count; v_count := v_count + n;
+  insert into public.packs select * from jsonb_populate_recordset(null::public.packs, coalesce(p_data->'packs', '[]'));
+  get diagnostics n = row_count; v_count := v_count + n;
+  insert into public.pack_recipes select * from jsonb_populate_recordset(null::public.pack_recipes, coalesce(p_data->'pack_recipes', '[]'));
+  get diagnostics n = row_count; v_count := v_count + n;
+  insert into public.clients select c.* from jsonb_populate_recordset(null::public.clients, coalesce(p_data->'clients', '[]')) c
+    where exists (select 1 from public.profiles p where p.id = c.user_id);
+  get diagnostics n = row_count; v_count := v_count + n;
+  insert into public.client_permissions select x.* from jsonb_populate_recordset(null::public.client_permissions, coalesce(p_data->'client_permissions', '[]')) x
+    where exists (select 1 from public.clients c where c.id = x.client_id);
+  get diagnostics n = row_count; v_count := v_count + n;
+  insert into public.orders select * from jsonb_populate_recordset(null::public.orders, coalesce(p_data->'orders', '[]'));
+  get diagnostics n = row_count; v_count := v_count + n;
+  insert into public.calculation_history select x.* from jsonb_populate_recordset(null::public.calculation_history, coalesce(p_data->'calculation_history', '[]')) x
+    where exists (select 1 from public.clients c where c.id = x.client_id);
+  get diagnostics n = row_count; v_count := v_count + n;
+  insert into public.favorites select x.* from jsonb_populate_recordset(null::public.favorites, coalesce(p_data->'favorites', '[]')) x
+    where exists (select 1 from public.clients c where c.id = x.client_id);
+  get diagnostics n = row_count; v_count := v_count + n;
+  insert into public.counters select * from jsonb_populate_recordset(null::public.counters, coalesce(p_data->'counters', '[]'));
+  insert into public.counters (name, value) values ('client', 0), ('order', 0) on conflict (name) do nothing;
+  insert into public.app_meta select * from jsonb_populate_recordset(null::public.app_meta, coalesce(p_data->'app_meta', '[]'))
+    where key <> 'lastBackupAt' on conflict (key) do nothing;
+
+  if p_data ? 'site_settings' and jsonb_array_length(p_data->'site_settings') > 0 then
+    delete from public.site_settings;
+    insert into public.site_settings select * from jsonb_populate_recordset(null::public.site_settings, p_data->'site_settings');
+  end if;
+  if p_data ? 'contact_settings' and jsonb_array_length(p_data->'contact_settings') > 0 then
+    delete from public.contact_settings;
+    insert into public.contact_settings select * from jsonb_populate_recordset(null::public.contact_settings, p_data->'contact_settings');
+  end if;
+  return v_count;
+end $$;
+
+-- Who can call what through the API
+grant execute on function public.login_email(text) to anon, authenticated;
+grant execute on function public.create_first_admin(text, text, text, text) to anon, authenticated;
+grant execute on function public.create_order(text, text, text, text, text, text, text, text, boolean) to anon, authenticated;
+grant execute on function public.next_client_serial() to authenticated;
+grant execute on function public.staff_create_client(text, text, text, boolean, text, text, jsonb, text) to authenticated;
+grant execute on function public.staff_update_client(text, text, text, text, text, text) to authenticated;
+grant execute on function public.staff_reset_client_password(text) to authenticated;
+grant execute on function public.staff_delete_client(text) to authenticated;
+grant execute on function public.set_client_permissions(text, jsonb) to authenticated;
+grant execute on function public.admin_create_worker(text, text, text, text, text[]) to authenticated;
+grant execute on function public.admin_update_worker(uuid, text, text, text, text, text, text[]) to authenticated;
+grant execute on function public.admin_delete_worker(uuid) to authenticated;
+grant execute on function public.update_own_profile(text, text, text, text) to authenticated;
+grant execute on function public.change_own_password(text, text) to authenticated;
+grant execute on function public.set_my_language(text) to authenticated;
+grant execute on function public.save_recipe(text, jsonb, jsonb) to authenticated;
+grant execute on function public.duplicate_recipe(text, text) to authenticated;
+grant execute on function public.save_pack(text, jsonb, text[]) to authenticated;
+grant execute on function public.unit_usage() to authenticated;
+grant execute on function public.restore_backup(jsonb) to authenticated;
+revoke execute on function public.require_permission(text) from public, anon;

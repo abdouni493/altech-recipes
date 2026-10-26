@@ -2,27 +2,26 @@
 
 import { cookies } from "next/headers";
 import { z } from "zod";
-import { prisma } from "@/lib/prisma";
+import { camel, DbError } from "@/lib/db";
+import type { Profile } from "@/lib/db-types";
 import { createSupabaseServer } from "@/lib/supabase/server";
-import { AccountConflictError, adminExists, createFirstAdmin, getAuthEmail } from "@/lib/accounts";
 import { staffHome } from "@/lib/permissions";
-import { runAction } from "@/lib/action-utils";
+import { isConflict, runAction } from "@/lib/action-utils";
 import { optionalEmail, passwordField, requiredText, usernameField, V, zodFieldErrors, type ActionResult } from "@/lib/validators";
 import { isLocale, LOCALE_COOKIE } from "@/i18n/config";
+
+type Supabase = ReturnType<typeof createSupabaseServer>;
 
 /**
  * After login: if the visitor already picked a language (cookie), remember it on the user;
  * otherwise apply the user's saved preference to the cookie.
  */
-async function syncUserLanguage(userId: string) {
+async function syncUserLanguage(supabase: Supabase, profile: Profile) {
   const cookieLocale = cookies().get(LOCALE_COOKIE)?.value;
   if (isLocale(cookieLocale)) {
-    await prisma.user.update({ where: { id: userId }, data: { language: cookieLocale } });
-  } else {
-    const dbUser = await prisma.user.findUnique({ where: { id: userId }, select: { language: true } });
-    if (dbUser && isLocale(dbUser.language)) {
-      cookies().set(LOCALE_COOKIE, dbUser.language, { path: "/", maxAge: 60 * 60 * 24 * 365, sameSite: "lax" });
-    }
+    await supabase.rpc("set_my_language", { p_language: cookieLocale });
+  } else if (isLocale(profile.language)) {
+    cookies().set(LOCALE_COOKIE, profile.language, { path: "/", maxAge: 60 * 60 * 24 * 365, sameSite: "lax" });
   }
 }
 
@@ -32,24 +31,22 @@ export async function loginAction(input: { identifier: string; password: string 
     const identifier = input.identifier?.trim().toLowerCase() ?? "";
     if (!identifier || !input.password) return { ok: false, error: "auth.invalid" };
 
+    const supabase = createSupabaseServer();
     // Usernames are resolved to the e-mail stored in Supabase Auth.
-    let email: string | null = identifier;
-    if (!identifier.includes("@")) {
-      const profile = await prisma.user.findUnique({ where: { username: identifier }, select: { id: true } });
-      email = profile ? await getAuthEmail(profile.id) : null;
-    }
+    const { data: email, error: lookupError } = await supabase.rpc("login_email", { p_identifier: identifier });
+    if (lookupError) throw new DbError(lookupError.message, lookupError.code);
     if (!email) return { ok: false, error: "auth.invalid" };
 
-    const supabase = createSupabaseServer();
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password: input.password });
+    const { data, error } = await supabase.auth.signInWithPassword({ email: email as string, password: input.password });
     if (error || !data.user) return { ok: false, error: "auth.invalid" };
 
-    const profile = await prisma.user.findUnique({ where: { id: data.user.id } });
-    if (!profile) {
+    const { data: row } = await supabase.from("profiles").select("*").eq("id", data.user.id).maybeSingle();
+    if (!row) {
       await supabase.auth.signOut();
       return { ok: false, error: "auth.invalid" };
     }
-    await syncUserLanguage(profile.id);
+    const profile = camel<Profile>(row);
+    await syncUserLanguage(supabase, profile);
     return { ok: true, data: { home: profile.role === "CLIENT" ? "/client" : staffHome(profile) } };
   });
 }
@@ -57,10 +54,6 @@ export async function loginAction(input: { identifier: string; password: string 
 export async function logoutAction() {
   await createSupabaseServer().auth.signOut();
   return { ok: true as const };
-}
-
-export async function adminExistsAction() {
-  return adminExists();
 }
 
 const firstAdminSchema = z
@@ -78,14 +71,8 @@ export type FirstAdminInput = z.input<typeof firstAdminSchema>;
 function setupError(e: unknown): ActionResult<{ home: string }> {
   const msg = e instanceof Error ? e.message : String(e);
   console.error("createFirstAdminAction failed:", e);
-  // Prisma "Validation Error Count" = DATABASE_URL is not a postgresql:// connection string.
-  if (/Validation Error Count|must start with the protocol|Error validating datasource/i.test(msg)) {
-    return { ok: false, error: "auth.setupDbUrlInvalid" };
-  }
-  if (/P1001|P1000|Can't reach database|ENOTFOUND|tenant\/user|password authentication failed|Environment variable not found/i.test(msg)) {
-    return { ok: false, error: "auth.setupDbUnreachable" };
-  }
-  if (/42883|42P01|does not exist/i.test(msg)) return { ok: false, error: "auth.setupSchemaMissing" };
+  if (/fetch failed|ENOTFOUND|Invalid API key|No API key/i.test(msg)) return { ok: false, error: "auth.setupSupabaseUnreachable" };
+  if (/PGRST202|42883|42P01|does not exist|Could not find the function/i.test(msg)) return { ok: false, error: "auth.setupSchemaMissing" };
   const detail = msg.split("\n").map((l) => l.trim()).filter(Boolean).pop()?.slice(0, 200) ?? "";
   return { ok: false, error: "auth.setupFailed", meta: { detail } };
 }
@@ -96,13 +83,15 @@ export async function createFirstAdminAction(input: FirstAdminInput): Promise<Ac
   if (!parsed.success) return { ok: false, error: "validation.invalid", fieldErrors: zodFieldErrors(parsed.error) };
   const d = parsed.data;
   try {
-    if (await adminExists()) return { ok: false, error: "auth.adminExists" };
-    await createFirstAdmin({ email: d.email, password: d.password, username: d.username, name: d.name });
+    const { error } = await createSupabaseServer().rpc("create_first_admin", {
+      p_email: d.email, p_password: d.password, p_username: d.username, p_name: d.name,
+    });
+    if (error) throw new DbError(error.message, error.code);
   } catch (e) {
-    if (e instanceof AccountConflictError) {
-      return { ok: false, error: "validation.usernameTaken", fieldErrors: /email/.test(e.message) ? { email: "auth.emailTaken" } : { username: "validation.usernameTaken" } };
-    }
     if (e instanceof Error && /admin already exists/.test(e.message)) return { ok: false, error: "auth.adminExists" };
+    if (isConflict(e)) {
+      return { ok: false, error: "validation.usernameTaken", fieldErrors: /email/.test((e as Error).message) ? { email: "auth.emailTaken" } : { username: "validation.usernameTaken" } };
+    }
     return setupError(e);
   }
   const login = await loginAction({ identifier: d.email, password: d.password });

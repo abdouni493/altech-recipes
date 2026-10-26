@@ -1,10 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { prisma } from "@/lib/prisma";
-import { requireStaff } from "@/lib/authz";
-import { runAction } from "@/lib/action-utils";
-import { AccountConflictError, getAuthEmail, setAccountEmail, setAccountPassword, verifyAccountPassword } from "@/lib/accounts";
+import { db, q } from "@/lib/db";
+import { getSessionEmail, requireStaff } from "@/lib/authz";
+import { isConflict, runAction } from "@/lib/action-utils";
 import { loginEmailFor } from "@/lib/permissions";
 import { adminPasswordSchema, adminProfileSchema, type AdminPasswordInput, type AdminProfileInput } from "@/lib/settings-schemas";
 import { zodFieldErrors, type ActionResult } from "@/lib/validators";
@@ -15,21 +14,23 @@ export async function updateAdminProfileAction(input: AdminProfileInput): Promis
     const me = await requireStaff();
     const parsed = adminProfileSchema.safeParse(input);
     if (!parsed.success) return { ok: false, error: "validation.invalid", fieldErrors: zodFieldErrors(parsed.error) };
-    const taken = await prisma.user.findUnique({ where: { username: parsed.data.username } });
-    if (taken && taken.id !== me.id) return { ok: false, error: "validation.usernameTaken", fieldErrors: { username: "validation.usernameTaken" } };
 
     // Keep the Supabase Auth login e-mail in sync: a real e-mail wins, otherwise the one derived from the username.
-    const authEmail = await getAuthEmail(me.id);
-    const nextEmail = parsed.data.email || (authEmail === loginEmailFor(me.username) ? loginEmailFor(parsed.data.username) : authEmail);
-    if (nextEmail && nextEmail !== authEmail) {
-      try {
-        await setAccountEmail(me.id, nextEmail);
-      } catch (e) {
-        if (e instanceof AccountConflictError) return { ok: false, error: "validation.invalid", fieldErrors: { email: "auth.emailTaken" } };
-        throw e;
+    const authEmail = await getSessionEmail();
+    const loginEmail = parsed.data.email
+      || (authEmail === loginEmailFor(me.username) || !authEmail ? loginEmailFor(parsed.data.username) : authEmail);
+    try {
+      await q(db().rpc("update_own_profile", {
+        p_name: parsed.data.name, p_username: parsed.data.username, p_email: parsed.data.email ?? "", p_login_email: loginEmail,
+      }));
+    } catch (e) {
+      if (isConflict(e)) {
+        return /username/.test((e as Error).message)
+          ? { ok: false, error: "validation.usernameTaken", fieldErrors: { username: "validation.usernameTaken" } }
+          : { ok: false, error: "validation.invalid", fieldErrors: { email: "auth.emailTaken" } };
       }
+      throw e;
     }
-    await prisma.user.update({ where: { id: me.id }, data: { name: parsed.data.name, username: parsed.data.username, email: parsed.data.email || null } });
     revalidatePath("/admin", "layout");
     return { ok: true };
   });
@@ -37,13 +38,11 @@ export async function updateAdminProfileAction(input: AdminProfileInput): Promis
 
 export async function updateAdminPasswordAction(input: AdminPasswordInput): Promise<ActionResult> {
   return runAction(async () => {
-    const me = await requireStaff();
+    await requireStaff();
     const parsed = adminPasswordSchema.safeParse(input);
     if (!parsed.success) return { ok: false, error: "validation.invalid", fieldErrors: zodFieldErrors(parsed.error) };
-    if (!(await verifyAccountPassword(me.id, parsed.data.currentPassword))) {
-      return { ok: false, error: "validation.currentPasswordWrong", fieldErrors: { currentPassword: "validation.currentPasswordWrong" } };
-    }
-    await setAccountPassword(me.id, parsed.data.newPassword);
+    const ok = await q<boolean>(db().rpc("change_own_password", { p_current: parsed.data.currentPassword, p_new: parsed.data.newPassword }));
+    if (!ok) return { ok: false, error: "validation.currentPasswordWrong", fieldErrors: { currentPassword: "validation.currentPasswordWrong" } };
     return { ok: true };
   });
 }

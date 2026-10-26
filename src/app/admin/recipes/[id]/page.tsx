@@ -4,7 +4,8 @@ import { notFound } from "next/navigation";
 import { getLocale, getTranslations } from "next-intl/server";
 import { Beaker, Boxes, Eye, EyeOff, Users } from "lucide-react";
 import { staffPageGuard } from "@/lib/authz";
-import { prisma } from "@/lib/prisma";
+import { db, n, q } from "@/lib/db";
+import type { Pack, Product, Recipe, RecipeIngredient, Unit } from "@/lib/db-types";
 import { PageHeader } from "@/components/shared/page-header";
 import { Badge, Card, CardContent, CardHeader, CardTitle } from "@/components/ui/basic";
 import { Thumb } from "@/components/shared/thumb";
@@ -14,7 +15,7 @@ import { toNumber } from "@/lib/utils";
 import { RecipeDetailActions } from "../recipe-actions";
 
 export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
-  const r = await prisma.recipe.findUnique({ where: { id: params.id }, select: { name: true } });
+  const r = await q<{ name: string } | null>(db().from("recipes").select("name").eq("id", params.id).maybeSingle()).catch(() => null);
   return { title: r?.name ?? "—" };
 }
 
@@ -23,16 +24,20 @@ export default async function RecipeDetailPage({ params }: { params: { id: strin
   const t = await getTranslations("recipes");
   const tc = await getTranslations("common");
   const locale = await getLocale();
-  const recipe = await prisma.recipe.findUnique({
-    where: { id: params.id },
-    include: {
-      outputUnit: true,
-      ingredients: { orderBy: { position: "asc" }, include: { product: true, unit: true } },
-      packs: { include: { pack: true } },
-      _count: { select: { permissions: true } },
-    },
-  });
-  if (!recipe) notFound();
+  const row = await q<(Recipe & {
+    outputUnit: Unit; ingredients: (RecipeIngredient & { product: Product; unit: Unit })[];
+    packs: { packId: string; pack: Pack }[]; permissions: unknown;
+  }) | null>(
+    db().from("recipes")
+      .select("*, outputUnit:units!recipes_output_unit_id_fkey(*), ingredients:recipe_ingredients(*, product:products(*), unit:units(*)), packs:pack_recipes(pack_id, pack:packs(*)), permissions:client_permissions(count)")
+      .eq("id", params.id).maybeSingle(),
+  );
+  if (!row) notFound();
+  const recipe = {
+    ...row,
+    ingredients: [...row.ingredients].sort((a, b) => a.position - b.position),
+    _count: { permissions: n(row.permissions) },
+  };
   const name = lname(recipe, locale);
   const output = `${formatNumber(toNumber(recipe.outputQuantity), locale)} ${recipe.outputUnit.symbol}`;
 

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { getLocale, getTranslations } from "next-intl/server";
 import { getSiteSettings, localized, parseHeroImages } from "@/lib/site";
-import { adminExists } from "@/lib/accounts";
+import { db, q } from "@/lib/db";
 import { LoginForm } from "./login-form";
 import { LanguageSwitcher } from "@/components/shared/language-switcher";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
@@ -21,7 +21,7 @@ export default async function LoginPage({ searchParams }: { searchParams: { call
     getTranslations("auth"),
     getLocale(),
     getSiteSettings(),
-    adminExists().then((exists) => !exists, (e) => (console.error("adminExists failed:", e), true)),
+    q<boolean>(db().rpc("admin_exists")).then((exists) => !exists, (e) => (console.error("adminExists failed:", e), true)),
   ]);
   const siteName = localized(settings, "siteName", locale);
   const hero = parseHeroImages(settings)[0];

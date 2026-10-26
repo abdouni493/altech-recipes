@@ -4,7 +4,8 @@ import { getTranslations } from "next-intl/server";
 import { UserPlus } from "lucide-react";
 import { staffPageGuard } from "@/lib/authz";
 import { hasPermission } from "@/lib/permissions";
-import { prisma } from "@/lib/prisma";
+import { db, n, q } from "@/lib/db";
+import type { Client } from "@/lib/db-types";
 import { PageHeader } from "@/components/shared/page-header";
 import { Button } from "@/components/ui/button";
 import { ClientsTable, type ClientRow } from "./clients-table";
@@ -16,13 +17,12 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function ClientsPage() {
   const user = await staffPageGuard("clients.view");
   const t = await getTranslations("clients");
-  const clients = await prisma.client.findMany({
-    orderBy: { serialNumber: "desc" },
-    include: { user: { select: { username: true } }, _count: { select: { permissions: true } } },
-  });
+  const clients = await q<(Client & { user: { username: string } | null; permissions: unknown })[]>(
+    db().from("clients").select("*, user:profiles(username), permissions:client_permissions(count)").order("serial_number", { ascending: false }),
+  );
   const rows: ClientRow[] = clients.map((c) => ({
     id: c.id, serialNumber: c.serialNumber, fullName: c.fullName, phone: c.phone, address: c.address,
-    username: c.user.username, permissions: c._count.permissions,
+    username: c.user?.username ?? "", permissions: n(c.permissions),
   }));
   return (
     <>

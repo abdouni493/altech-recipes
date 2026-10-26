@@ -3,7 +3,7 @@ import { AppShell } from "@/components/shared/app-shell";
 import { StaffPermissionsProvider } from "@/components/shared/staff-permissions";
 import { staffPageGuard } from "@/lib/authz";
 import { canOpen, hasPermission, STAFF_PAGES } from "@/lib/permissions";
-import { prisma } from "@/lib/prisma";
+import { countOf, db } from "@/lib/db";
 import { getSiteSettings, localized } from "@/lib/site";
 
 export const dynamic = "force-dynamic";
@@ -12,7 +12,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const user = await staffPageGuard();
   const [settings, pendingOrders, locale] = await Promise.all([
     getSiteSettings(),
-    hasPermission(user, "orders.view") ? prisma.order.count({ where: { status: "PENDING" } }) : 0,
+    hasPermission(user, "orders.view")
+      ? countOf(db().from("orders").select("id", { count: "exact", head: true }).eq("status", "PENDING")).catch(() => 0)
+      : 0,
     getLocale(),
   ]);
   return (

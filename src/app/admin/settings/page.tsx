@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { getLocale, getTranslations } from "next-intl/server";
 import { staffPageGuard } from "@/lib/authz";
-import { prisma } from "@/lib/prisma";
+import { countOf, db, q } from "@/lib/db";
 import { PageHeader } from "@/components/shared/page-header";
 import { formatDate } from "@/lib/format";
 import { SettingsTabs } from "./settings-tabs";
@@ -16,8 +16,8 @@ export default async function SettingsPage() {
   const locale = await getLocale();
   const isAdmin = admin.role === "ADMIN";
   const [last, recipes, products, clients, orders] = isAdmin ? await Promise.all([
-    prisma.appMeta.findUnique({ where: { key: "lastBackupAt" } }),
-    prisma.recipe.count(), prisma.product.count(), prisma.client.count(), prisma.order.count(),
+    q<{ value: string } | null>(db().from("app_meta").select("value").eq("key", "lastBackupAt").maybeSingle()),
+    ...(["recipes", "products", "clients", "orders"] as const).map((t) => countOf(db().from(t).select("*", { count: "exact", head: true }))),
   ]) : [null, 0, 0, 0, 0];
   return (
     <>

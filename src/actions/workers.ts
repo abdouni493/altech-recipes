@@ -2,10 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { prisma } from "@/lib/prisma";
+import { db, q } from "@/lib/db";
 import { requireAdmin } from "@/lib/authz";
-import { runAction } from "@/lib/action-utils";
-import { AccountConflictError, createAuthAccount, deleteAuthAccount, getAuthEmail, setAccountEmail, setAccountPassword } from "@/lib/accounts";
+import { isConflict, runAction } from "@/lib/action-utils";
 import { loginEmailFor, normalizePermissions } from "@/lib/permissions";
 import { optionalEmail, passwordField, requiredText, usernameField, zodFieldErrors, type ActionResult } from "@/lib/validators";
 
@@ -20,10 +19,10 @@ const updateSchema = baseSchema.extend({ password: z.union([z.literal(""), passw
 
 export type WorkerInput = z.input<typeof updateSchema>;
 
-const conflict = (e: AccountConflictError): { ok: false; error: string; fieldErrors: Record<string, string> } => ({
+const conflict = (e: unknown): { ok: false; error: string; fieldErrors: Record<string, string> } => ({
   ok: false as const,
   error: "validation.usernameTaken",
-  fieldErrors: /email/.test(e.message) && !/username/.test(e.message) ? { email: "auth.emailTaken" } : { username: "validation.usernameTaken" },
+  fieldErrors: /email/.test((e as Error).message) && !/username/.test((e as Error).message) ? { email: "auth.emailTaken" } : { username: "validation.usernameTaken" },
 });
 
 export async function createWorkerAction(input: WorkerInput): Promise<ActionResult<{ id: string }>> {
@@ -33,14 +32,14 @@ export async function createWorkerAction(input: WorkerInput): Promise<ActionResu
     if (!parsed.success) return { ok: false, error: "validation.invalid", fieldErrors: zodFieldErrors(parsed.error) };
     const d = parsed.data;
     try {
-      const id = await createAuthAccount(prisma, {
-        email: d.email || loginEmailFor(d.username), password: d.password, username: d.username, name: d.name,
-        role: "WORKER", permissions: normalizePermissions(d.permissions),
-      });
+      const id = await q<string>(db().rpc("admin_create_worker", {
+        p_name: d.name, p_username: d.username, p_login_email: d.email || loginEmailFor(d.username),
+        p_password: d.password, p_permissions: normalizePermissions(d.permissions),
+      }));
       revalidatePath("/admin/workers");
       return { ok: true, data: { id } };
     } catch (e) {
-      if (e instanceof AccountConflictError) return conflict(e);
+      if (isConflict(e)) return conflict(e);
       throw e;
     }
   });
@@ -52,23 +51,15 @@ export async function updateWorkerAction(id: string, input: WorkerInput): Promis
     const parsed = updateSchema.safeParse(input);
     if (!parsed.success) return { ok: false, error: "validation.invalid", fieldErrors: zodFieldErrors(parsed.error) };
     const d = parsed.data;
-    const worker = await prisma.user.findUnique({ where: { id } });
-    if (!worker || worker.role !== "WORKER") return { ok: false, error: "common.genericError" };
-    const taken = await prisma.user.findUnique({ where: { username: d.username } });
-    if (taken && taken.id !== id) return { ok: false, error: "validation.usernameTaken", fieldErrors: { username: "validation.usernameTaken" } };
-
-    const nextEmail = d.email || loginEmailFor(d.username);
     try {
-      if (nextEmail !== (await getAuthEmail(id))) await setAccountEmail(id, nextEmail);
+      await q(db().rpc("admin_update_worker", {
+        p_id: id, p_name: d.name, p_username: d.username, p_email: d.email ?? "", p_login_email: d.email || loginEmailFor(d.username),
+        p_password: d.password ?? "", p_permissions: normalizePermissions(d.permissions),
+      }));
     } catch (e) {
-      if (e instanceof AccountConflictError) return conflict(e);
+      if (isConflict(e)) return conflict(e);
       throw e;
     }
-    if (d.password) await setAccountPassword(id, d.password);
-    await prisma.user.update({
-      where: { id },
-      data: { name: d.name, username: d.username, email: d.email || null, permissions: normalizePermissions(d.permissions) },
-    });
     revalidatePath("/admin", "layout");
     return { ok: true };
   });
@@ -77,9 +68,7 @@ export async function updateWorkerAction(id: string, input: WorkerInput): Promis
 export async function deleteWorkerAction(id: string): Promise<ActionResult> {
   return runAction(async () => {
     await requireAdmin();
-    const worker = await prisma.user.findUnique({ where: { id } });
-    if (!worker || worker.role !== "WORKER") return { ok: false, error: "common.genericError" };
-    await deleteAuthAccount(id);
+    await q(db().rpc("admin_delete_worker", { p_id: id }));
     revalidatePath("/admin/workers");
     return { ok: true };
   });

@@ -1,13 +1,11 @@
 import "server-only";
-import { prisma } from "@/lib/prisma";
+import { db, q } from "@/lib/db";
 
 /**
  * Public catalog: ONLY id + name, description and image (with their Arabic variants).
  * Ingredients, quantities and output are never selected here, so they cannot reach the HTML or any API response.
  */
-export const PUBLIC_RECIPE_SELECT = {
-  id: true, name: true, nameAr: true, description: true, descriptionAr: true, imageUrl: true,
-} as const;
+export const PUBLIC_RECIPE_COLUMNS = "id, name, name_ar, description, description_ar, image_url";
 
 export type PublicRecipe = { id: string; name: string; nameAr: string; description: string; descriptionAr: string; imageUrl: string | null };
 
@@ -22,16 +20,22 @@ async function orEmpty<T>(label: string, query: Promise<T[]>): Promise<T[]> {
 }
 
 export function getPublicRecipes(take?: number): Promise<PublicRecipe[]> {
-  return orEmpty("getPublicRecipes", prisma.recipe.findMany({ where: { isVisibleOnWebsite: true }, select: PUBLIC_RECIPE_SELECT, orderBy: { createdAt: "desc" }, take }));
+  let query = db().from("recipes").select(PUBLIC_RECIPE_COLUMNS).eq("is_visible_on_website", true).order("created_at", { ascending: false });
+  if (take) query = query.limit(take);
+  return orEmpty("getPublicRecipes", q<PublicRecipe[]>(query));
 }
 
-export function getPublicRecipe(id: string): Promise<PublicRecipe | null> {
-  return prisma.recipe.findFirst({ where: { id, isVisibleOnWebsite: true }, select: PUBLIC_RECIPE_SELECT });
+export async function getPublicRecipe(id: string): Promise<PublicRecipe | null> {
+  try {
+    return await q<PublicRecipe | null>(db().from("recipes").select(PUBLIC_RECIPE_COLUMNS).eq("id", id).eq("is_visible_on_website", true).maybeSingle());
+  } catch (e) {
+    console.error("getPublicRecipe failed:", e);
+    return null;
+  }
 }
 
 export function getPublicPacks() {
-  return orEmpty("getPublicPacks", prisma.pack.findMany({
-    select: { id: true, name: true, nameAr: true, description: true, descriptionAr: true, imageUrl: true },
-    orderBy: { createdAt: "asc" },
-  }));
+  return orEmpty("getPublicPacks", q<PublicRecipe[]>(
+    db().from("packs").select("id, name, name_ar, description, description_ar, image_url").order("created_at", { ascending: true }),
+  ));
 }

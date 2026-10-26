@@ -1,8 +1,8 @@
 import "server-only";
 import { cache } from "react";
 import { redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
-import { createSupabaseServer } from "@/lib/supabase/server";
+import { db, q } from "@/lib/db";
+import type { Client, Profile } from "@/lib/db-types";
 import { hasPermission, type Permission } from "@/lib/permissions";
 
 export class AuthError extends Error {
@@ -12,13 +12,24 @@ export class AuthError extends Error {
 }
 
 /** Profile of the logged-in Supabase user, re-read from the DB on every request (never trusted from the token). */
-export const getSessionUser = cache(async () => {
-  const supabase = createSupabaseServer();
+export const getSessionUser = cache(async (): Promise<Profile | null> => {
+  const supabase = db();
   const { data } = await supabase.auth.getClaims();
   const id = data?.claims?.sub;
   if (!id) return null;
-  return prisma.user.findUnique({ where: { id } });
+  try {
+    return await q<Profile | null>(supabase.from("profiles").select("*").eq("id", id).maybeSingle());
+  } catch (e) {
+    console.error("getSessionUser failed:", e);
+    return null;
+  }
 });
+
+/** Login e-mail of the signed-in user (from the session). */
+export async function getSessionEmail() {
+  const { data } = await db().auth.getClaims();
+  return (data?.claims?.email as string | undefined) ?? null;
+}
 
 /** ADMIN or WORKER; with `perm`, a worker must hold that permission. Throws otherwise. */
 export async function requireStaff(perm?: Permission) {
@@ -41,13 +52,15 @@ export async function requireAdmin() {
   return user;
 }
 
+export type SessionClient = Client & { user: Profile };
+
 /** For server actions / route handlers: returns the Client row of the logged-in client, or throws. */
-export async function requireClient() {
+export async function requireClient(): Promise<SessionClient> {
   const user = await getSessionUser();
   if (!user || user.role !== "CLIENT") throw new AuthError();
-  const client = await prisma.client.findUnique({ where: { userId: user.id }, include: { user: true } });
+  const client = await q<Client | null>(db().from("clients").select("*").eq("user_id", user.id).maybeSingle());
   if (!client) throw new AuthError();
-  return client;
+  return { ...client, user };
 }
 
 /** For staff pages: redirects to login when signed out, to /admin/forbidden when the permission is missing. */
@@ -67,6 +80,8 @@ export async function clientPageGuard() {
 }
 
 export async function clientCanAccessRecipe(clientId: string, recipeId: string) {
-  const perm = await prisma.clientPermission.findUnique({ where: { clientId_recipeId: { clientId, recipeId } } });
-  return Boolean(perm);
+  const row = await q<{ id: string } | null>(
+    db().from("client_permissions").select("id").eq("client_id", clientId).eq("recipe_id", recipeId).maybeSingle(),
+  );
+  return Boolean(row);
 }

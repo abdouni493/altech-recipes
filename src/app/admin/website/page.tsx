@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import { ExternalLink } from "lucide-react";
 import { staffPageGuard } from "@/lib/authz";
-import { prisma } from "@/lib/prisma";
+import { db, q } from "@/lib/db";
 import { getContactSettings, getSiteSettings, parseHeroImages } from "@/lib/site";
 import { PageHeader } from "@/components/shared/page-header";
 import { Button } from "@/components/ui/button";
@@ -16,7 +16,9 @@ export default async function WebsitePage({ searchParams }: { searchParams: { ta
   await staffPageGuard("website.view");
   const t = await getTranslations("website");
   const [recipes, contact, site] = await Promise.all([
-    prisma.recipe.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true, nameAr: true, description: true, descriptionAr: true, imageUrl: true, isVisibleOnWebsite: true } }),
+    q<{ id: string; name: string; nameAr: string; description: string; descriptionAr: string; imageUrl: string | null; isVisibleOnWebsite: boolean }[]>(
+      db().from("recipes").select("id, name, name_ar, description, description_ar, image_url, is_visible_on_website").order("name"),
+    ),
     getContactSettings(),
     getSiteSettings(),
   ]);

@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import { staffPageGuard } from "@/lib/authz";
-import { prisma } from "@/lib/prisma";
+import { db, q } from "@/lib/db";
+import type { Profile } from "@/lib/db-types";
 import { PageHeader } from "@/components/shared/page-header";
 import { WorkersView } from "./workers-view";
 
@@ -12,7 +13,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function WorkersPage() {
   await staffPageGuard("ADMIN");
   const t = await getTranslations("workers");
-  const workers = await prisma.user.findMany({ where: { role: "WORKER" }, orderBy: { createdAt: "asc" } });
+  const workers = await q<Profile[]>(db().from("profiles").select("*").eq("role", "WORKER").order("created_at"));
   return (
     <>
       <PageHeader title={t("title")} description={t("subtitle")} />

@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { staffPageGuard } from "@/lib/authz";
-import { prisma } from "@/lib/prisma";
+import { db, q } from "@/lib/db";
+import type { Client, ClientPermission } from "@/lib/db-types";
 import { getPermissionCatalog } from "@/lib/client-queries";
 import { PageHeader } from "@/components/shared/page-header";
 import { PermissionsForm } from "./permissions-form";
@@ -14,7 +15,9 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function ClientPermissionsPage({ params }: { params: { id: string } }) {
   await staffPageGuard("clients.permissions");
   const t = await getTranslations("clients");
-  const client = await prisma.client.findUnique({ where: { id: params.id }, include: { permissions: true } });
+  const client = await q<(Client & { permissions: ClientPermission[] }) | null>(
+    db().from("clients").select("*, permissions:client_permissions(*)").eq("id", params.id).maybeSingle(),
+  );
   if (!client) notFound();
   const catalog = await getPermissionCatalog();
   return (

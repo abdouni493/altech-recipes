@@ -2,20 +2,20 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { prisma } from "@/lib/prisma";
+import { db, q } from "@/lib/db";
 import { clientCanAccessRecipe, requireClient } from "@/lib/authz";
-import { runAction } from "@/lib/action-utils";
-import { setAccountPassword, verifyAccountPassword } from "@/lib/accounts";
+import { isForeignKey, runAction } from "@/lib/action-utils";
 import { passwordField, positiveNumber, V, zodFieldErrors, type ActionResult } from "@/lib/validators";
 
 export async function toggleFavoriteAction(recipeId: string): Promise<ActionResult<{ favorite: boolean }>> {
   return runAction(async () => {
     const client = await requireClient();
     if (!(await clientCanAccessRecipe(client.id, recipeId))) return { ok: false, error: "common.unauthorized" };
-    const key = { clientId_recipeId: { clientId: client.id, recipeId } };
-    const existing = await prisma.favorite.findUnique({ where: key });
-    if (existing) await prisma.favorite.delete({ where: key });
-    else await prisma.favorite.create({ data: { clientId: client.id, recipeId } });
+    const existing = await q<{ recipeId: string } | null>(
+      db().from("favorites").select("recipe_id").eq("client_id", client.id).eq("recipe_id", recipeId).maybeSingle(),
+    );
+    if (existing) await q(db().from("favorites").delete().eq("client_id", client.id).eq("recipe_id", recipeId));
+    else await q(db().from("favorites").insert({ client_id: client.id, recipe_id: recipeId }));
     revalidatePath("/client", "layout");
     return { ok: true, data: { favorite: !existing } };
   });
@@ -29,9 +29,14 @@ export async function saveCalculationAction(input: z.input<typeof calcSchema>): 
     const parsed = calcSchema.safeParse(input);
     if (!parsed.success) return { ok: false, error: "calculator.invalidTarget" };
     if (!(await clientCanAccessRecipe(client.id, parsed.data.recipeId))) return { ok: false, error: "common.unauthorized" };
-    const unit = await prisma.unit.findUnique({ where: { id: parsed.data.unitId } });
-    if (!unit) return { ok: false, error: "validation.invalid" };
-    await prisma.calculationHistory.create({ data: { clientId: client.id, ...parsed.data } });
+    try {
+      await q(db().from("calculation_history").insert({
+        client_id: client.id, recipe_id: parsed.data.recipeId, target_quantity: parsed.data.targetQuantity, unit_id: parsed.data.unitId,
+      }));
+    } catch (e) {
+      if (isForeignKey(e)) return { ok: false, error: "validation.invalid" };
+      throw e;
+    }
     revalidatePath("/client/history");
     return { ok: true };
   });
@@ -40,9 +45,10 @@ export async function saveCalculationAction(input: z.input<typeof calcSchema>): 
 export async function deleteHistoryAction(id: string | "all"): Promise<ActionResult> {
   return runAction(async () => {
     const client = await requireClient();
-    // Scoped to the logged-in client: an id belonging to someone else matches nothing.
-    if (id === "all") await prisma.calculationHistory.deleteMany({ where: { clientId: client.id } });
-    else await prisma.calculationHistory.deleteMany({ where: { id, clientId: client.id } });
+    // Scoped to the logged-in client: an id belonging to someone else matches nothing (RLS too).
+    let query = db().from("calculation_history").delete().eq("client_id", client.id);
+    if (id !== "all") query = query.eq("id", id);
+    await q(query);
     revalidatePath("/client/history");
     return { ok: true };
   });
@@ -54,12 +60,11 @@ const changePasswordSchema = z
 
 export async function changeOwnPasswordAction(input: z.input<typeof changePasswordSchema>): Promise<ActionResult> {
   return runAction(async () => {
-    const client = await requireClient();
+    await requireClient();
     const parsed = changePasswordSchema.safeParse(input);
     if (!parsed.success) return { ok: false, error: "validation.invalid", fieldErrors: zodFieldErrors(parsed.error) };
-    const ok = await verifyAccountPassword(client.userId, parsed.data.currentPassword);
+    const ok = await q<boolean>(db().rpc("change_own_password", { p_current: parsed.data.currentPassword, p_new: parsed.data.newPassword }));
     if (!ok) return { ok: false, error: "validation.currentPasswordWrong", fieldErrors: { currentPassword: "validation.currentPasswordWrong" } };
-    await setAccountPassword(client.userId, parsed.data.newPassword);
     return { ok: true };
   });
 }
