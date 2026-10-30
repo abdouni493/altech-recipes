@@ -29,7 +29,10 @@
     "clients": "Clients",
     "orders": "Commandes",
     "website": "Site web",
-    "suppliers": "Fournisseurs"
+    "suppliers": "Fournisseurs",
+    "purchases": "Achats",
+    "pos": "Point de vente",
+    "sales": "Ventes"
   },
   "perm": {
     "dashboard_view": "Voir le tableau de bord",
@@ -58,6 +61,17 @@
     "suppliers_view": "Voir les fournisseurs",
     "suppliers_create": "Ajouter des fournisseurs",
     "suppliers_edit": "Modifier les fournisseurs",
-    "suppliers_delete": "Supprimer des fournisseurs"
+    "suppliers_delete": "Supprimer des fournisseurs",
+    "purchases_view": "Voir les achats",
+    "purchases_create": "Créer des achats",
+    "purchases_edit": "Modifier les achats",
+    "purchases_delete": "Supprimer des achats",
+    "purchases_pay": "Payer les fournisseurs",
+    "pos_use": "Utiliser le point de vente",
+    "sales_view": "Voir les ventes",
+    "sales_create": "Créer des ventes",
+    "sales_edit": "Modifier les ventes",
+    "sales_delete": "Supprimer des ventes",
+    "sales_pay": "Encaisser les dettes clients"
   }
 }

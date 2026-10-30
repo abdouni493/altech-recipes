@@ -29,7 +29,10 @@
     "clients": "الزبائن",
     "orders": "الطلبات",
     "website": "الموقع",
-    "suppliers": "الموردون"
+    "suppliers": "الموردون",
+    "purchases": "المشتريات",
+    "pos": "نقطة البيع",
+    "sales": "المبيعات"
   },
   "perm": {
     "dashboard_view": "عرض لوحة التحكم",
@@ -58,6 +61,17 @@
     "suppliers_view": "عرض الموردين",
     "suppliers_create": "إضافة موردين",
     "suppliers_edit": "تعديل الموردين",
-    "suppliers_delete": "حذف موردين"
+    "suppliers_delete": "حذف موردين",
+    "purchases_view": "عرض المشتريات",
+    "purchases_create": "إنشاء مشتريات",
+    "purchases_edit": "تعديل المشتريات",
+    "purchases_delete": "حذف مشتريات",
+    "purchases_pay": "الدفع للموردين",
+    "pos_use": "استخدام نقطة البيع",
+    "sales_view": "عرض المبيعات",
+    "sales_create": "إنشاء مبيعات",
+    "sales_edit": "تعديل المبيعات",
+    "sales_delete": "حذف مبيعات",
+    "sales_pay": "تحصيل ديون العملاء"
   }
 }

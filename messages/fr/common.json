@@ -90,5 +90,7 @@
   "email": "E-mail",
   "address": "Adresse",
   "call": "Appeler",
-  "skipToContent": "Aller au contenu"
+  "skipToContent": "Aller au contenu",
+  "websitePrice": "Prix sur le site",
+  "websitePriceHint": "Laissez vide pour ne pas afficher de prix."
 }

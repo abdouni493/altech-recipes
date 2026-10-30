@@ -9,17 +9,22 @@ export type Unit = { id: string; name: string; nameAr: string; symbol: string; d
 export type Product = {
   id: string; name: string; nameAr: string; description: string; descriptionAr: string; imageUrl: string | null;
   unitId: string; createdAt: string; updatedAt: string;
+  barcode: string | null; purchasePrice: number; priceDetail: number; priceReseller: number; priceWholesale: number;
+  stockQuantity: number; minStockAlert: number; isVisibleOnWebsite: boolean; isOutOfStock: boolean;
 };
 export type Recipe = {
   id: string; name: string; nameAr: string; description: string; descriptionAr: string; imageUrl: string | null;
-  outputQuantity: number; outputUnitId: string; isVisibleOnWebsite: boolean; createdAt: string; updatedAt: string;
+  outputQuantity: number; outputUnitId: string; isVisibleOnWebsite: boolean; createdAt: string; updatedAt: string; price: number | null;
 };
 export type RecipeIngredient = { id: string; recipeId: string; productId: string; quantity: number; unitId: string; position: number };
 export type Pack = {
   id: string; name: string; nameAr: string; description: string; descriptionAr: string; imageUrl: string | null;
-  createdAt: string; updatedAt: string;
+  createdAt: string; updatedAt: string; price: number | null;
 };
-export type Client = { id: string; serialNumber: number; fullName: string; phone: string; address: string; userId: string; createdAt: string };
+export type Client = {
+  id: string; serialNumber: number; fullName: string; phone: string; address: string; userId: string; createdAt: string;
+  priceType: "DETAIL" | "RESELLER" | "WHOLESALE";
+};
 export type ClientPermission = { id: string; clientId: string; recipeId: string; packId: string | null; createdAt: string };
 export type Order = {
   id: string; orderNumber: string; fullName: string; phone: string; wilayaCode: string; wilayaName: string; communeName: string;

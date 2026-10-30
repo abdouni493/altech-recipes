@@ -84,5 +84,8 @@
   "fromOrder": "Pré-rempli depuis la commande {number}.",
   "lastLogin": "Langue préférée",
   "printTitle": "Identifiants de connexion",
-  "printFooter": "Conservez ce document en lieu sûr."
+  "printFooter": "Conservez ce document en lieu sûr.",
+  "priceType": "Type de prix de vente",
+  "priceTypeHint": "Prix appliqué automatiquement à ce client au point de vente.",
+  "useThisClient": "Utiliser ce client"
 }

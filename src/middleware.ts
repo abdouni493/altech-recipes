@@ -27,7 +27,7 @@ export async function middleware(req: NextRequest) {
   };
   const home = role === "ADMIN" || role === "WORKER" ? "/admin" : role === "CLIENT" ? "/client" : null;
 
-  if (pathname.startsWith("/admin")) {
+  if (pathname.startsWith("/admin") || pathname.startsWith("/print")) {
     if (!user) return redirectTo(`/login?callbackUrl=${encodeURIComponent(pathname)}`);
     if (role !== "ADMIN" && role !== "WORKER") return redirectTo(home ?? "/login");
   }
@@ -40,4 +40,4 @@ export async function middleware(req: NextRequest) {
   return res;
 }
 
-export const config = { matcher: ["/admin/:path*", "/client/:path*", "/login"] };
+export const config = { matcher: ["/admin/:path*", "/print/:path*", "/client/:path*", "/login"] };

@@ -3,7 +3,7 @@ import AdmZip from "adm-zip";
 import { db, DbError } from "@/lib/db";
 
 export const BACKUP_FORMAT = "recettes-altech-backup";
-export const BACKUP_VERSION = 3;
+export const BACKUP_VERSION = 4;
 
 /**
  * Tables exported as raw rows (snake_case), keyed by table name. Accounts (profiles / auth.users)
@@ -11,7 +11,8 @@ export const BACKUP_VERSION = 3;
  */
 export const TABLES = [
   "units", "products", "recipes", "recipe_ingredients", "packs", "pack_recipes", "clients", "client_permissions",
-  "orders", "site_settings", "contact_settings", "calculation_history", "favorites", "counters", "app_meta",
+  "orders", "order_items", "site_settings", "contact_settings", "calculation_history", "favorites", "counters", "app_meta",
+  "suppliers", "supplier_products", "purchases", "purchase_items", "sales", "sale_items", "payments", "stock_movements",
 ] as const;
 
 async function allRows(table: string) {
@@ -51,8 +52,8 @@ export async function restoreBackupZip(buffer: Buffer) {
   } catch {
     throw new BackupError("invalid json");
   }
-  // Version 3+ only: older archives used another table layout.
-  if (parsed.format !== BACKUP_FORMAT || parsed.version !== BACKUP_VERSION || !parsed.data) throw new BackupError("unknown format");
+  // Version 3+ only: older archives used another table layout. v3 has no suppliers / commerce tables (restored empty).
+  if (parsed.format !== BACKUP_FORMAT || (parsed.version !== 3 && parsed.version !== BACKUP_VERSION) || !parsed.data) throw new BackupError("unknown format");
   for (const t of TABLES) if (parsed.data[t] !== undefined && !Array.isArray(parsed.data[t])) throw new BackupError(`bad table ${t}`);
   const { data, error } = await db().rpc("restore_backup", { p_data: parsed.data });
   if (error) throw new DbError(error.message, error.code);

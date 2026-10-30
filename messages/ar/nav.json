@@ -10,7 +10,10 @@
     "settings": "الإعدادات",
     "area": "فضاء المسؤول",
     "workers": "الموظفون",
-    "suppliers": "الموردون"
+    "suppliers": "الموردون",
+    "purchases": "المشتريات",
+    "pos": "نقطة البيع",
+    "sales": "المبيعات"
   },
   "client": {
     "recipes": "وصفاتي",
@@ -29,6 +32,7 @@
     "contact": "اتصل بنا",
     "clientArea": "فضاء الزبون",
     "login": "تسجيل الدخول",
-    "myArea": "فضائي"
+    "myArea": "فضائي",
+    "products": "المنتجات"
   }
 }

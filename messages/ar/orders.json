@@ -32,7 +32,8 @@
     "convert": "إنشاء زبون",
     "call": "اتصال",
     "whatsapp": "واتساب",
-    "delete": "حذف"
+    "delete": "حذف",
+    "toSale": "تحويل إلى بيع"
   },
   "toast": {
     "confirmed": "تم تأكيد الطلب {number}.",
@@ -52,5 +53,12 @@
   "pack": "باقة",
   "empty": "لا توجد طلبات تطابق معاييرك.",
   "emptyTitle": "لا توجد طلبات بعد",
-  "whatsappMessage": "مرحبًا {name}، لقد استلمنا طلبك {number} على {site}."
+  "whatsappMessage": "مرحبًا {name}، لقد استلمنا طلبك {number} على {site}.",
+  "items": "العناصر",
+  "total": "المجموع",
+  "itemType": {
+    "RECIPE": "وصفة",
+    "PACK": "باقة",
+    "PRODUCT": "منتج"
+  }
 }

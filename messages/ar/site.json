@@ -100,7 +100,28 @@
     "wantsAccountHint": "الوصول إلى وصفاتك وإلى حاسبة الإنتاج.",
     "submit": "إرسال طلبي",
     "submitting": "جارٍ الإرسال…",
-    "privacy": "تُستعمل معلوماتك فقط لمعالجة طلبك."
+    "privacy": "تُستعمل معلوماتك فقط لمعالجة طلبك.",
+    "basket": "طلبك",
+    "addRecipe": "إضافة وصفة",
+    "addPack": "إضافة باقة",
+    "addProduct": "إضافة منتج",
+    "basketEmpty": "طلبك فارغ.",
+    "browseProducts": "تصفح منتجاتنا",
+    "suggestTitle": "إضافة المنتجات المستعملة في «{recipe}»؟",
+    "suggestText": "اطلب الوصفة وموادها الأولية دفعة واحدة. ألغِ تحديد ما لا تحتاجه.",
+    "suggestYes": "إضافة {count, plural, one {منتج واحد} two {منتجين} few {# منتجات} many {# منتجًا} other {# منتج}}",
+    "suggestNo": "لا شكرًا",
+    "type": {
+      "RECIPE": "وصفة",
+      "PACK": "باقة",
+      "PRODUCT": "منتج"
+    },
+    "priceOnRequest": "السعر عند الطلب",
+    "quantity": "الكمية",
+    "remove": "إزالة",
+    "yourDetails": "معلوماتك",
+    "summary": "الملخص",
+    "unpricedHint": "بعض العناصر بدون سعر معروض: سنؤكد لك المبلغ عبر الهاتف."
   },
   "successTitle": "شكرًا، تم تسجيل طلبك!",
   "successText": "سنتصل بك قريبًا جدًا على الرقم {phone} لتأكيده.",
@@ -112,5 +133,17 @@
   "orderError": "تعذر تسجيل الطلب. تحقق من الاستمارة.",
   "tooMany": "تم إرسال طلبات كثيرة. أعد المحاولة بعد بضع دقائق.",
   "whatsappFloat": "تحدث معنا على واتساب",
-  "whatsappHello": "مرحبًا، أرغب في معلومات حول وصفاتكم."
+  "whatsappHello": "مرحبًا، أرغب في معلومات حول وصفاتكم.",
+  "productsTitle": "منتجاتنا",
+  "productsSubtitle": "المواد الأولية والمنتجات المتاحة للطلب.",
+  "productsSearch": "ابحث عن منتج…",
+  "viewOrder": "طلبي",
+  "noProducts": "لا توجد منتجات متاحة حاليًا.",
+  "outOfStock": "نفاد المخزون",
+  "addToOrder": "إضافة",
+  "inOrder": "مضاف",
+  "addedToOrder": "تمت إضافة «{name}» إلى طلبك.",
+  "productsInOrder": "{count, plural, one {منتج واحد} two {منتجان} few {# منتجات} many {# منتجًا} other {# منتج}} في طلبك",
+  "finishOrder": "إتمام الطلب",
+  "orderTotal": "المجموع التقديري"
 }

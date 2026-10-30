@@ -21,5 +21,15 @@
   "newRecipe": "Nouvelle recette",
   "newClient": "Nouveau client",
   "newProduct": "Nouveau produit",
-  "orders": "Commandes"
+  "orders": "Commandes",
+  "commerce": {
+    "todaySales": "Ventes du jour",
+    "toCollect": "Dettes clients à encaisser",
+    "toPay": "Dettes fournisseurs à payer",
+    "lowStock": "Produits en stock faible",
+    "lowStockHint": "Sous le seuil d'alerte",
+    "salesCount": "{count, plural, one {# vente} other {# ventes}}",
+    "invoicesCount": "{count, plural, one {# facture} other {# factures}}",
+    "purchasesCount": "{count, plural, one {# achat} other {# achats}}"
+  }
 }

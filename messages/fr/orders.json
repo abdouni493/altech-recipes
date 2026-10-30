@@ -32,7 +32,8 @@
     "convert": "Créer un client",
     "call": "Appeler",
     "whatsapp": "WhatsApp",
-    "delete": "Supprimer"
+    "delete": "Supprimer",
+    "toSale": "Convertir en vente"
   },
   "toast": {
     "confirmed": "Commande {number} confirmée.",
@@ -52,5 +53,12 @@
   "pack": "Pack",
   "empty": "Aucune commande ne correspond à vos critères.",
   "emptyTitle": "Pas encore de commandes",
-  "whatsappMessage": "Bonjour {name}, nous avons bien reçu votre commande {number} sur {site}."
+  "whatsappMessage": "Bonjour {name}, nous avons bien reçu votre commande {number} sur {site}.",
+  "items": "Articles",
+  "total": "Total",
+  "itemType": {
+    "RECIPE": "Recette",
+    "PACK": "Pack",
+    "PRODUCT": "Produit"
+  }
 }

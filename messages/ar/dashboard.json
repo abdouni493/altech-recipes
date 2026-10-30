@@ -21,5 +21,15 @@
   "newRecipe": "وصفة جديدة",
   "newClient": "زبون جديد",
   "newProduct": "منتج جديد",
-  "orders": "الطلبات"
+  "orders": "الطلبات",
+  "commerce": {
+    "todaySales": "مبيعات اليوم",
+    "toCollect": "ديون العملاء للتحصيل",
+    "toPay": "ديون الموردين للدفع",
+    "lowStock": "منتجات بمخزون منخفض",
+    "lowStockHint": "تحت حد التنبيه",
+    "salesCount": "{count, plural, one {عملية بيع واحدة} other {# عمليات بيع}}",
+    "invoicesCount": "{count, plural, one {فاتورة واحدة} other {# فواتير}}",
+    "purchasesCount": "{count, plural, one {شراء واحد} other {# مشتريات}}"
+  }
 }

@@ -90,5 +90,7 @@
   "email": "البريد الإلكتروني",
   "address": "العنوان",
   "call": "اتصال",
-  "skipToContent": "الانتقال إلى المحتوى"
+  "skipToContent": "الانتقال إلى المحتوى",
+  "websitePrice": "السعر على الموقع",
+  "websitePriceHint": "اتركه فارغًا لعدم عرض السعر."
 }

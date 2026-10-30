@@ -100,7 +100,28 @@
     "wantsAccountHint": "Accès à vos recettes et au calculateur de production.",
     "submit": "Envoyer ma commande",
     "submitting": "Envoi…",
-    "privacy": "Vos informations servent uniquement au traitement de votre commande."
+    "privacy": "Vos informations servent uniquement au traitement de votre commande.",
+    "basket": "Votre commande",
+    "addRecipe": "Ajouter une recette",
+    "addPack": "Ajouter un pack",
+    "addProduct": "Ajouter un produit",
+    "basketEmpty": "Votre commande est vide.",
+    "browseProducts": "Voir nos produits",
+    "suggestTitle": "Ajouter les produits utilisés dans « {recipe} » ?",
+    "suggestText": "Commandez la recette et ses matières premières en une seule fois. Décochez ce dont vous n'avez pas besoin.",
+    "suggestYes": "Ajouter {count, plural, one {# produit} other {# produits}}",
+    "suggestNo": "Non merci",
+    "type": {
+      "RECIPE": "Recette",
+      "PACK": "Pack",
+      "PRODUCT": "Produit"
+    },
+    "priceOnRequest": "Prix sur demande",
+    "quantity": "Quantité",
+    "remove": "Retirer",
+    "yourDetails": "Vos coordonnées",
+    "summary": "Récapitulatif",
+    "unpricedHint": "Certains articles n'ont pas de prix affiché : nous vous confirmerons le montant par téléphone."
   },
   "successTitle": "Merci, votre commande est enregistrée !",
   "successText": "Nous vous contacterons très bientôt au {phone} pour la confirmer.",
@@ -112,5 +133,17 @@
   "orderError": "Impossible d'enregistrer la commande. Vérifiez le formulaire.",
   "tooMany": "Trop de commandes envoyées. Réessayez dans quelques minutes.",
   "whatsappFloat": "Discuter sur WhatsApp",
-  "whatsappHello": "Bonjour, je souhaite des informations sur vos recettes."
+  "whatsappHello": "Bonjour, je souhaite des informations sur vos recettes.",
+  "productsTitle": "Nos produits",
+  "productsSubtitle": "Matières premières et produits disponibles à la commande.",
+  "productsSearch": "Rechercher un produit…",
+  "viewOrder": "Ma commande",
+  "noProducts": "Aucun produit disponible pour le moment.",
+  "outOfStock": "Rupture de stock",
+  "addToOrder": "Ajouter",
+  "inOrder": "Ajouté",
+  "addedToOrder": "« {name} » ajouté à votre commande.",
+  "productsInOrder": "{count, plural, one {# produit} other {# produits}} dans votre commande",
+  "finishOrder": "Finaliser",
+  "orderTotal": "Total estimé"
 }
