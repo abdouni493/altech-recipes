@@ -26,6 +26,7 @@ export default async function PacksPage() {
     id: p.id, name: p.name, nameAr: p.nameAr, description: p.description, descriptionAr: p.descriptionAr, imageUrl: p.imageUrl,
     recipes: p.recipes.flatMap((r) => (r.recipe ? [r.recipe] : [])),
     clients: new Set(p.permissions.map((x) => x.clientId)).size,
+    price: p.price === null || p.price === undefined ? null : Number(p.price),
   }));
   return (
     <>

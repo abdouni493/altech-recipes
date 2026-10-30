@@ -30,7 +30,7 @@ export default async function EditRecipePage({ params }: { params: { id: string 
         recipeId={recipe.id}
         initial={{
           name: recipe.name, nameAr: recipe.nameAr, description: recipe.description, descriptionAr: recipe.descriptionAr,
-          imageUrl: recipe.imageUrl, isVisibleOnWebsite: recipe.isVisibleOnWebsite,
+          imageUrl: recipe.imageUrl, isVisibleOnWebsite: recipe.isVisibleOnWebsite, price: recipe.price === null ? null : toNumber(recipe.price),
           outputQuantity: toNumber(recipe.outputQuantity), outputUnitId: recipe.outputUnitId,
           ingredients: [...recipe.ingredients].sort((a, b) => a.position - b.position).map((i) => ({ productId: i.productId, quantity: toNumber(i.quantity), unitId: i.unitId })),
         }}

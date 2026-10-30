@@ -28,7 +28,7 @@ import { cn } from "@/lib/utils";
 const STEP_FIELDS: (keyof RecipeInput)[][] = [
   ["name", "nameAr", "description", "descriptionAr", "imageUrl"],
   ["ingredients"],
-  ["outputQuantity", "outputUnitId"],
+  ["outputQuantity", "outputUnitId", "price"],
   [],
 ];
 
@@ -228,6 +228,9 @@ export function RecipeForm({ products, initial, recipeId }: { products: ProductD
                     )} />
                   </Field>
                 </div>
+                <Field label={tc("websitePrice")} htmlFor="recipe-price" optional optionalLabel={tc("optional")} hint={tc("websitePriceHint")} error={errors.price?.message} className="max-w-xs">
+                  <Input id="recipe-price" inputMode="decimal" dir="ltr" placeholder="0" {...form.register("price")} />
+                </Field>
                 {outUnit && outQty > 0 && (
                   <div className="flex items-center gap-3 rounded-xl bg-sage-soft p-4 text-sm">
                     <Beaker className="h-5 w-5 shrink-0 text-primary" />

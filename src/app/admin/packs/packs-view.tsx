@@ -25,7 +25,7 @@ import { ldesc, lname } from "@/lib/i18n-data";
 
 export type PackRow = {
   id: string; name: string; nameAr: string; description: string; descriptionAr: string; imageUrl: string | null;
-  recipes: RecipeLiteDTO[]; clients: number;
+  recipes: RecipeLiteDTO[]; clients: number; price: number | null;
 };
 
 export function PacksView({ packs, recipes }: { packs: PackRow[]; recipes: RecipeLiteDTO[] }) {
@@ -117,7 +117,7 @@ function PackFormDialog({ open, onOpenChange, pack, recipes, onSaved }: { open: 
     if (!open) return;
     form.reset({
       name: pack?.name ?? "", nameAr: pack?.nameAr ?? "", description: pack?.description ?? "", descriptionAr: pack?.descriptionAr ?? "",
-      imageUrl: pack?.imageUrl ?? null, recipeIds: pack?.recipes.map((r) => r.id) ?? [],
+      imageUrl: pack?.imageUrl ?? null, price: pack?.price ?? null, recipeIds: pack?.recipes.map((r) => r.id) ?? [],
     });
     setShowAr(Boolean(pack?.nameAr || pack?.descriptionAr));
   }, [open, pack, form]);
@@ -152,6 +152,9 @@ function PackFormDialog({ open, onOpenChange, pack, recipes, onSaved }: { open: 
               </Field>
               <Field label={t("description")} htmlFor="pack-description" optional optionalLabel={tc("optional")}>
                 <Textarea id="pack-description" rows={3} placeholder={t("descriptionPlaceholder")} {...form.register("description")} />
+              </Field>
+              <Field label={tc("websitePrice")} htmlFor="pack-price" optional optionalLabel={tc("optional")} hint={tc("websitePriceHint")} error={e.price?.message}>
+                <Input id="pack-price" inputMode="decimal" dir="ltr" placeholder="0" {...form.register("price")} />
               </Field>
               <div className="rounded-xl border bg-background/50">
                 <button type="button" onClick={() => setShowAr((s) => !s)} aria-expanded={showAr} className="flex w-full items-center gap-2 px-4 py-3 text-start text-sm font-medium">

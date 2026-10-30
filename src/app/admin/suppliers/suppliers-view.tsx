@@ -6,7 +6,7 @@ import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
-import { Loader2, Pencil, Plus, Trash2 } from "lucide-react";
+import { History, Loader2, Pencil, Plus, Trash2, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/basic";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/overlays";
@@ -16,12 +16,18 @@ import { ProductMultiSelect } from "@/components/shared/product-multi-select";
 import { SupplierList } from "@/components/shared/supplier-list";
 import { useCan } from "@/components/shared/staff-permissions";
 import { useActionFeedback } from "@/components/shared/use-action-feedback";
+import { Money } from "@/components/commerce/shared";
+import { PartyDebtDialog } from "@/components/commerce/debt-dialogs";
+import { PartyHistoryDialog } from "@/components/commerce/party-history-dialog";
 import { deleteSupplierAction, saveSupplierAction } from "@/actions/suppliers";
 import { supplierSchema, type SupplierInput } from "@/lib/schemas";
 import type { SupplierDTO, SupplierProductDTO } from "@/lib/suppliers";
 
-export function SuppliersView({ suppliers, products }: { suppliers: SupplierDTO[]; products: SupplierProductDTO[] }) {
+export function SuppliersView({ suppliers, products, debts }: { suppliers: SupplierDTO[]; products: SupplierProductDTO[]; debts: Record<string, number> }) {
   const t = useTranslations("suppliers");
+  const tm = useTranslations("commerce");
+  const [history, setHistory] = useState<SupplierDTO | null>(null);
+  const [paying, setPaying] = useState<SupplierDTO | null>(null);
   const tc = useTranslations("common");
   const router = useRouter();
   const can = useCan();
@@ -51,6 +57,12 @@ export function SuppliersView({ suppliers, products }: { suppliers: SupplierDTO[
         emptyAction={newButton}
         actions={(s) => (
           <>
+            {(debts[s.id] ?? 0) > 0 && (
+              can("purchases.pay")
+                ? <Button variant="ghost" size="sm" className="text-destructive" title={tm("payDebt")} onClick={() => setPaying(s)}><Wallet /><Money value={debts[s.id]} /></Button>
+                : <Money value={debts[s.id]} className="px-2 text-xs font-semibold text-destructive" />
+            )}
+            <Button variant="ghost" size="icon-sm" title={tm("history")} aria-label={`${tm("history")} ${s.fullName}`} onClick={() => setHistory(s)}><History /></Button>
             {can("suppliers.edit") && <Button variant="ghost" size="icon-sm" aria-label={`${tc("edit")} ${s.fullName}`} onClick={() => { setEditing(s); setOpen(true); }}><Pencil /></Button>}
             {can("suppliers.delete") && <ConfirmDialog
               trigger={<Button variant="ghost" size="icon-sm" className="text-destructive hover:text-destructive" aria-label={`${tc("delete")} ${s.fullName}`}><Trash2 /></Button>}
@@ -67,6 +79,8 @@ export function SuppliersView({ suppliers, products }: { suppliers: SupplierDTO[
         )}
       />
       <SupplierFormDialog open={open} onOpenChange={setOpen} supplier={editing} products={products} onSaved={() => router.refresh()} />
+      {history && <PartyHistoryDialog open onOpenChange={(o) => !o && setHistory(null)} kind="supplier" partyId={history.id} partyName={history.fullName} />}
+      {paying && <PartyDebtDialog open onOpenChange={(o) => !o && setPaying(null)} kind="supplier" partyId={paying.id} partyName={paying.fullName} />}
     </>
   );
 }

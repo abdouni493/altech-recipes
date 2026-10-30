@@ -4,6 +4,12 @@ import {
   optionalPhoneField, phoneField, idField, imageUrlField, optionalText, positiveNumber, requiredText, V,
 } from "@/lib/validators";
 
+/** Money / quantity ≥ 0; empty → 0. Accepts "12,5". */
+const amountField = z.preprocess(
+  (v) => (typeof v === "string" ? (v.trim() === "" ? 0 : Number(v.replace(",", ".").trim())) : v ?? 0),
+  z.number({ invalid_type_error: V.number }).finite(V.number).min(0, V.positive).max(1_000_000_000, V.invalid),
+);
+
 export const DIMENSIONS = ["VOLUME", "MASS", "COUNT", "OTHER"] as const;
 
 export const unitSchema = z.object({
@@ -22,6 +28,15 @@ export const productSchema = z.object({
   descriptionAr: optionalText(2000),
   imageUrl: imageUrlField,
   unitId: idField(V.selectUnit),
+  barcode: z.string().trim().max(64).regex(/^[A-Za-z0-9\-. ]*$/, V.invalid).optional().default("").transform((v) => v || null),
+  purchasePrice: amountField,
+  priceDetail: amountField,
+  priceReseller: amountField,
+  priceWholesale: amountField,
+  minStockAlert: amountField,
+  /** Only used when the product is created; later changes go through stock movements. */
+  stockQuantity: amountField,
+  isVisibleOnWebsite: z.boolean().default(false),
 });
 export type ProductInput = z.input<typeof productSchema>;
 
@@ -31,7 +46,14 @@ export const ingredientSchema = z.object({
   unitId: idField(V.selectUnit),
 });
 
+/** Optional website price of a recipe / pack; empty → none. */
+export const optionalPriceField = z.preprocess(
+  (v) => (typeof v === "string" ? (v.trim() === "" ? null : Number(v.replace(",", ".").trim())) : v ?? null),
+  z.number({ invalid_type_error: V.number }).finite(V.number).min(0, V.positive).max(1_000_000_000, V.invalid).nullable(),
+);
+
 export const recipeSchema = z.object({
+  price: optionalPriceField.optional(),
   name: requiredText(120),
   nameAr: optionalText(120),
   description: optionalText(4000),
@@ -48,6 +70,7 @@ export const recipeSchema = z.object({
 export type RecipeInput = z.input<typeof recipeSchema>;
 
 export const packSchema = z.object({
+  price: optionalPriceField.optional(),
   name: requiredText(120),
   nameAr: optionalText(120),
   description: optionalText(2000),

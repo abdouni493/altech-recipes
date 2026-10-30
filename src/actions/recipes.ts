@@ -18,7 +18,7 @@ export async function saveRecipeAction(id: string | null, input: RecipeInput): P
     await requireStaff(id ? "recipes.edit" : "recipes.create");
     const parsed = recipeSchema.safeParse(input);
     if (!parsed.success) return { ok: false, error: "validation.invalid", fieldErrors: zodFieldErrors(parsed.error) };
-    const { ingredients, ...data } = parsed.data;
+    const { ingredients, price, ...data } = parsed.data;
     try {
       // save_recipe() writes the recipe and its ingredients (array order = position) in one transaction;
       // unknown products or units are rejected by the foreign keys.
@@ -27,6 +27,8 @@ export async function saveRecipeAction(id: string | null, input: RecipeInput): P
         p_data: snake(data),
         p_ingredients: ingredients.map((i) => ({ product_id: i.productId, quantity: i.quantity, unit_id: i.unitId })),
       }));
+      // Website price (supabase/commerce-2.sql).
+      await q(db().rpc("set_catalog_price", { p_kind: "RECIPE", p_id: recipe.id, p_price: price ?? null }));
       revalidateRecipes();
       return { ok: true, data: recipe };
     } catch (e) {
