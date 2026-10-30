@@ -15,6 +15,7 @@ import { formatDate, formatMonth, formatNumber } from "@/lib/format";
 import { lname } from "@/lib/i18n-data";
 import { toNumber } from "@/lib/utils";
 import { OrdersChart } from "./orders-chart";
+import { CommerceStats } from "./commerce-stats";
 
 export async function generateMetadata(): Promise<Metadata> {
   return { title: (await getTranslations("dashboard"))("title") };
@@ -99,6 +100,8 @@ export default async function DashboardPage() {
           </StaggerItem>
         ))}
       </Stagger>
+
+      <CommerceStats user={admin} />
 
       <Reveal className="grid gap-6 xl:grid-cols-5">
         <Card className="xl:col-span-3">

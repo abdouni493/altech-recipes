@@ -30,7 +30,7 @@ export default async function LoginPage({ searchParams }: { searchParams: { call
     <div className="grid min-h-screen lg:grid-cols-[1.05fr_1fr]">
       <aside className="relative hidden overflow-hidden bg-primary lg:block">
         {hero && <img src={hero} alt="" className="absolute inset-0 h-full w-full object-cover opacity-90" />}
-        <div className="absolute inset-0 bg-gradient-to-t from-[hsl(30_10%_8%/0.85)] via-[hsl(30_10%_8%/0.35)] to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[hsl(222_47%_8%/0.85)] via-[hsl(222_47%_8%/0.35)] to-transparent" />
         <div className="relative flex h-full flex-col justify-between p-12 text-white">
           <Logo name={siteName} logoUrl={settings.logoUrl} className="text-white" />
           <div className="max-w-lg space-y-4">

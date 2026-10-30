@@ -3,7 +3,7 @@ import { Slot } from "@radix-ui/react-slot";
 import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
-// Pinch-of-Yum style: squared, uppercase, wide tracking. Solid variants get a cinematic colour sweep on hover (::before).
+// Editorial style: squared, uppercase, wide tracking. Solid variants get a cinematic colour sweep on hover (::before).
 const sweep =
   "relative isolate overflow-hidden before:absolute before:inset-0 before:-z-10 before:origin-left before:scale-x-0 before:transition-transform before:duration-500 before:ease-[cubic-bezier(0.76,0,0.24,1)] hover:before:scale-x-100 rtl:before:origin-right";
 

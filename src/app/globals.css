@@ -4,66 +4,66 @@
 
 @layer base {
   :root {
-    /* Palette inspired by pinchofyum.com: crisp white, plum, mustard gold, warm charcoal text */
+    /* Blue palette inspired by Stripe, Linear and Tailwind UI: crisp white, royal blue, deep navy text, sky accent */
     --background: 0 0% 100%;
-    --foreground: 0 0% 10%;        /* #1A1A1A headings */
-    --cream: 36 33% 97%;           /* #F9F7F4 section wash */
+    --foreground: 222 47% 11%;     /* #0F172A navy headings */
+    --cream: 214 60% 98%;          /* #F5F9FF section wash */
     --card: 0 0% 100%;
-    --card-foreground: 0 0% 10%;
+    --card-foreground: 222 47% 11%;
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 10%;
-    --primary: 323 29% 35%;        /* #734060 plum */
+    --popover-foreground: 222 47% 11%;
+    --primary: 221 83% 53%;        /* #2563EB blue-600 */
     --primary-foreground: 0 0% 100%;
-    --sage-soft: 322 30% 95%;      /* plum tint */
-    --secondary: 36 33% 96%;
-    --secondary-foreground: 0 0% 20%;
-    --muted: 36 20% 95%;
-    --muted-foreground: 0 0% 38%;  /* ~#4D4D4D body copy */
-    --accent: 39 80% 92%;          /* soft gold */
-    --accent-foreground: 30 50% 20%;
-    --lemon: 39 81% 63%;           /* #EDB654 gold */
-    --lemon-foreground: 0 0% 10%;
-    --destructive: 4 65% 50%;
+    --sage-soft: 214 100% 97%;     /* #EFF6FF blue tint */
+    --secondary: 214 40% 96%;
+    --secondary-foreground: 222 40% 20%;
+    --muted: 214 32% 95%;
+    --muted-foreground: 215 19% 35%;  /* #475569 body copy (AA on white) */
+    --accent: 204 94% 94%;         /* #E0F2FE soft sky */
+    --accent-foreground: 201 90% 22%;
+    --lemon: 199 89% 48%;          /* #0EA5E9 sky accent */
+    --lemon-foreground: 0 0% 100%;
+    --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
-    --success: 140 40% 38%;
+    --success: 152 60% 34%;
     --success-foreground: 0 0% 100%;
-    --warning: 36 90% 50%;
-    --warning-foreground: 30 50% 12%;
-    --border: 30 10% 89%;
-    --input: 30 8% 80%;
-    --ring: 323 29% 40%;
-    --radius: 0.375rem;
+    --warning: 35 92% 48%;
+    --warning-foreground: 30 60% 10%;
+    --border: 214 32% 90%;
+    --input: 214 25% 80%;
+    --ring: 221 83% 53%;
+    --radius: 0.5rem;
     --ease-cinema: cubic-bezier(0.76, 0, 0.24, 1);
   }
 
   .dark {
-    --background: 320 8% 8%;
-    --foreground: 30 20% 94%;
-    --cream: 320 8% 11%;
-    --card: 320 7% 11%;
-    --card-foreground: 30 20% 94%;
-    --popover: 320 7% 11%;
-    --popover-foreground: 30 20% 94%;
-    --primary: 322 38% 68%;
-    --primary-foreground: 320 30% 8%;
-    --sage-soft: 322 18% 18%;
-    --secondary: 320 6% 16%;
-    --secondary-foreground: 30 20% 90%;
-    --muted: 320 6% 15%;
-    --muted-foreground: 30 8% 66%;
-    --accent: 39 40% 20%;
-    --accent-foreground: 39 80% 85%;
-    --lemon: 39 81% 63%;
-    --lemon-foreground: 0 0% 8%;
-    --destructive: 4 60% 52%;
+    --background: 222 47% 7%;      /* #0B1120 */
+    --foreground: 214 32% 95%;
+    --cream: 222 42% 10%;
+    --card: 222 40% 10%;
+    --card-foreground: 214 32% 95%;
+    --popover: 222 40% 10%;
+    --popover-foreground: 214 32% 95%;
+    --primary: 213 94% 68%;        /* #60A5FA blue-400 */
+    --primary-foreground: 222 47% 11%;
+    --sage-soft: 220 45% 17%;
+    --secondary: 222 32% 15%;
+    --secondary-foreground: 214 32% 90%;
+    --muted: 222 30% 14%;
+    --muted-foreground: 215 20% 68%;
+    --accent: 204 60% 18%;
+    --accent-foreground: 199 90% 82%;
+    --lemon: 198 93% 60%;          /* #38BDF8 */
+    --lemon-foreground: 222 47% 11%;
+    --destructive: 0 72% 58%;
     --destructive-foreground: 0 0% 100%;
-    --success: 140 35% 48%;
+    --success: 152 50% 46%;
     --success-foreground: 0 0% 100%;
-    --warning: 36 85% 55%;
-    --warning-foreground: 30 50% 10%;
-    --border: 320 6% 21%;
-    --input: 320 6% 27%;
-    --ring: 322 38% 65%;
+    --warning: 38 92% 55%;
+    --warning-foreground: 30 60% 10%;
+    --border: 222 25% 20%;
+    --input: 222 22% 27%;
+    --ring: 213 94% 68%;
   }
 
   * { @apply border-border; }
@@ -83,7 +83,7 @@
     --tw-scale-x: -1;
     transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
   }
-  /* Pinch-of-Yum style label: small caps, wide tracking, square gold tag */
+  /* Label: small caps, wide tracking, square sky tag */
   .eyebrow { @apply text-xs font-bold uppercase tracking-[0.25em] text-primary; font-family: var(--font-label); }
   .tag { @apply inline-block bg-lemon px-3 py-1 text-[11px] font-bold uppercase tracking-[0.2em] text-lemon-foreground; font-family: var(--font-label); }
   .marquee-track { animation: marquee 38s linear infinite; }

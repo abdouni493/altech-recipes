@@ -33,8 +33,8 @@ const config: Config = {
         label: ["var(--font-label)", "system-ui", "sans-serif"],
       },
       boxShadow: {
-        soft: "0 1px 2px hsl(320 20% 15% / 0.04), 0 8px 24px -12px hsl(320 20% 15% / 0.14)",
-        lift: "0 2px 4px hsl(320 20% 15% / 0.05), 0 24px 48px -18px hsl(320 30% 20% / 0.32)",
+        soft: "0 1px 2px hsl(222 47% 11% / 0.04), 0 8px 24px -12px hsl(222 47% 11% / 0.14)",
+        lift: "0 2px 4px hsl(222 47% 11% / 0.05), 0 24px 48px -18px hsl(221 60% 25% / 0.32)",
       },
       keyframes: {
         "accordion-down": { from: { height: "0" }, to: { height: "var(--radix-accordion-content-height)" } },
