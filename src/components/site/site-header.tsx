@@ -31,6 +31,7 @@ export function SiteHeader({ siteName, logoUrl, role }: { siteName: string; logo
   const links = [
     { href: "/", label: t("home") },
     { href: "/recettes", label: t("recipes") },
+    { href: "/produits", label: t("products") },
     { href: "/commander", label: t("order") },
     { href: "/#contact", label: t("contact") },
   ];

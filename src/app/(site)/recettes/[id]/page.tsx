@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { getLocale, getTranslations } from "next-intl/server";
 import { ArrowLeft, BookOpen, Lock, ShoppingBag } from "lucide-react";
 import { getPublicRecipe, getPublicRecipes } from "@/lib/public-queries";
+import { formatMoney } from "@/lib/commerce";
 import { Button } from "@/components/ui/button";
 import { Reveal, Stagger, StaggerItem } from "@/components/shared/motion";
 import { PublicRecipeCard } from "@/components/site/public-recipe-card";
@@ -38,6 +39,7 @@ export default async function PublicRecipePage({ params }: { params: { id: strin
         <Reveal delay={0.1} className="space-y-6">
           <h1 className="font-serif text-4xl font-semibold leading-tight sm:text-5xl">{name}</h1>
           <p className="whitespace-pre-line text-lg leading-relaxed text-muted-foreground">{ldesc(recipe, locale)}</p>
+          {recipe.price !== null && <p className="text-3xl font-bold text-primary">{formatMoney(Number(recipe.price), locale)}</p>}
           <div className="flex gap-3 rounded-2xl border border-dashed border-primary/40 bg-sage-soft/40 p-4 text-sm">
             <Lock className="mt-0.5 h-4 w-4 shrink-0 text-primary" />{t("recipeTeaser")}
           </div>

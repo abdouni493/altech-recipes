@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowUpRight, BookOpen } from "lucide-react";
 import type { PublicRecipe } from "@/lib/public-queries";
 import { ldesc, lname } from "@/lib/i18n-data";
+import { formatMoney } from "@/lib/commerce";
 
 /** Public card: image, name and description only. */
 export function PublicRecipeCard({ recipe, locale, cta }: { recipe: PublicRecipe; locale: string; cta: string }) {
@@ -21,6 +22,7 @@ export function PublicRecipeCard({ recipe, locale, cta }: { recipe: PublicRecipe
         <div className="space-y-2 pt-4 text-center">
           <h3 className="font-serif text-xl font-bold leading-snug transition-colors group-hover:text-primary">{name}</h3>
           <p className="line-clamp-2 text-sm text-muted-foreground">{ldesc(recipe, locale)}</p>
+          {recipe.price !== null && recipe.price !== undefined && <p className="font-semibold text-primary">{formatMoney(Number(recipe.price), locale)}</p>}
           <span className="tag mt-1">{cta}</span>
         </div>
       </article>

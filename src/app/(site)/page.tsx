@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { getContactSettings, getSiteSettings, localized, parseHeroImages } from "@/lib/site";
 import { getPublicPacks, getPublicRecipes } from "@/lib/public-queries";
+import { formatMoney } from "@/lib/commerce";
 import { HeroSlider } from "@/components/site/hero-slider";
 import { PublicRecipeCard } from "@/components/site/public-recipe-card";
 import { SocialLinks, WhatsAppIcon } from "@/components/site/social-icons";
@@ -113,10 +114,11 @@ export default async function HomePage() {
               <StaggerItem key={p.id}>
                 <Link href={`/commander?pack=${p.id}`} className="group relative block h-full overflow-hidden shadow-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                   {p.imageUrl ? <img src={p.imageUrl} alt="" className="aspect-[4/3] w-full object-cover transition-transform duration-700 group-hover:scale-105" /> : <div className="aspect-[4/3] bg-gradient-to-br from-sage-soft to-accent" />}
-                  <div className="absolute inset-0 bg-gradient-to-t from-[hsl(320_25%_8%/0.85)] to-transparent" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[hsl(222_47%_8%/0.85)] to-transparent" />
                   <div className="absolute inset-x-0 bottom-0 p-6 text-white">
                     <h3 className="font-serif text-2xl font-semibold">{lname(p, locale)}</h3>
                     <p className="mt-1 line-clamp-2 text-sm text-white/80">{ldesc(p, locale)}</p>
+                    {p.price !== null && <p className="mt-1 text-lg font-bold">{formatMoney(Number(p.price), locale)}</p>}
                     <span className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-lemon">{t("heroCtaSecondary")}<ArrowRight className="h-4 w-4 flip-rtl transition-transform group-hover:translate-x-1 rtl:group-hover:-translate-x-1" /></span>
                   </div>
                 </Link>

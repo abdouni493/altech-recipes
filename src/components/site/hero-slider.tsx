@@ -35,7 +35,7 @@ export function HeroSlider({ images, title, subtitle }: { images: string[]; titl
               className="absolute inset-0 h-full w-full object-cover" />
           )}
         </AnimatePresence>
-        <div className="absolute inset-0 bg-gradient-to-t from-[hsl(320_25%_8%/0.88)] via-[hsl(320_25%_8%/0.35)] to-[hsl(320_25%_8%/0.2)]" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[hsl(222_47%_8%/0.88)] via-[hsl(222_47%_8%/0.35)] to-[hsl(221_60%_20%/0.2)]" />
         <div className="container relative flex h-full flex-col justify-end pb-24 pt-40 text-white md:pb-28">
           <div className="max-w-4xl space-y-6">
             <motion.span initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.8, delay: 0.5 }} className="tag">{t("heroEyebrow")}</motion.span>

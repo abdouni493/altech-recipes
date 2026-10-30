@@ -5,9 +5,9 @@ import { db, q } from "@/lib/db";
  * Public catalog: ONLY id + name, description and image (with their Arabic variants).
  * Ingredients, quantities and output are never selected here, so they cannot reach the HTML or any API response.
  */
-export const PUBLIC_RECIPE_COLUMNS = "id, name, name_ar, description, description_ar, image_url";
+export const PUBLIC_RECIPE_COLUMNS = "id, name, name_ar, description, description_ar, image_url, price";
 
-export type PublicRecipe = { id: string; name: string; nameAr: string; description: string; descriptionAr: string; imageUrl: string | null };
+export type PublicRecipe = { id: string; name: string; nameAr: string; description: string; descriptionAr: string; imageUrl: string | null; price: number | null };
 
 /** Public pages render an empty catalog instead of crashing when the database is unreachable. */
 async function orEmpty<T>(label: string, query: Promise<T[]>): Promise<T[]> {
@@ -36,6 +36,22 @@ export async function getPublicRecipe(id: string): Promise<PublicRecipe | null> 
 
 export function getPublicPacks() {
   return orEmpty("getPublicPacks", q<PublicRecipe[]>(
-    db().from("packs").select("id, name, name_ar, description, description_ar, image_url").order("created_at", { ascending: true }),
+    db().from("packs").select("id, name, name_ar, description, description_ar, image_url, price").order("created_at", { ascending: true }),
   ));
+}
+
+/** Products sold on the website (public_products(): safe columns only, never cost or stock quantity). */
+export type PublicProduct = {
+  id: string; name: string; nameAr: string; description: string; descriptionAr: string; imageUrl: string | null;
+  barcode: string | null; price: number; unitId: string; isOutOfStock: boolean;
+};
+
+export function getPublicProducts() {
+  return orEmpty("getPublicProducts", q<PublicProduct[]>(db().rpc("public_products")).then((rows) => rows.map((p) => ({ ...p, price: Number(p.price) }))));
+}
+
+export type PublicRecipeProduct = { id: string; name: string; nameAr: string; imageUrl: string | null; price: number; isOutOfStock: boolean };
+
+export function getPublicRecipeProducts(recipeId: string) {
+  return orEmpty("getPublicRecipeProducts", q<PublicRecipeProduct[]>(db().rpc("public_recipe_products", { p_recipe_id: recipeId })).then((rows) => rows.map((p) => ({ ...p, price: Number(p.price) }))));
 }

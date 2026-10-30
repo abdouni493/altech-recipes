@@ -1,34 +1,33 @@
 import type { Metadata } from "next";
-import { getLocale, getTranslations } from "next-intl/server";
-import { getPublicPacks, getPublicRecipes } from "@/lib/public-queries";
+import { getTranslations } from "next-intl/server";
+import { getPublicPacks, getPublicProducts, getPublicRecipes } from "@/lib/public-queries";
 import { getContactSettings } from "@/lib/site";
-import { lname } from "@/lib/i18n-data";
 import { Reveal } from "@/components/shared/motion";
-import { OrderForm } from "./order-form";
+import { OrderForm, type CatalogItem } from "./order-form";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("site");
   return { title: t("orderTitle"), description: t("orderSubtitle") };
 }
 
-export default async function OrderPage({ searchParams }: { searchParams: { recipe?: string; pack?: string } }) {
+export default async function OrderPage({ searchParams }: { searchParams: { recipe?: string; pack?: string; product?: string } }) {
   const t = await getTranslations("site");
-  const locale = await getLocale();
-  const [recipes, packs, contact] = await Promise.all([getPublicRecipes(), getPublicPacks(), getContactSettings()]);
-  const initialItem = searchParams.recipe && recipes.some((r) => r.id === searchParams.recipe) ? `recipe:${searchParams.recipe}`
-    : searchParams.pack && packs.some((p) => p.id === searchParams.pack) ? `pack:${searchParams.pack}` : "";
+  const [recipes, packs, products, contact] = await Promise.all([getPublicRecipes(), getPublicPacks(), getPublicProducts(), getContactSettings()]);
+  const catalog: CatalogItem[] = [
+    ...recipes.map((r) => ({ type: "RECIPE" as const, id: r.id, name: r.name, nameAr: r.nameAr, imageUrl: r.imageUrl, price: r.price === null ? null : Number(r.price), out: false })),
+    ...packs.map((p) => ({ type: "PACK" as const, id: p.id, name: p.name, nameAr: p.nameAr, imageUrl: p.imageUrl, price: p.price === null ? null : Number(p.price), out: false })),
+    ...products.map((p) => ({ type: "PRODUCT" as const, id: p.id, name: p.name, nameAr: p.nameAr, imageUrl: p.imageUrl, price: p.price, out: p.isOutOfStock })),
+  ];
+  const initial = searchParams.recipe ? { type: "RECIPE" as const, id: searchParams.recipe }
+    : searchParams.pack ? { type: "PACK" as const, id: searchParams.pack }
+    : searchParams.product ? { type: "PRODUCT" as const, id: searchParams.product } : null;
   return (
-    <div className="container max-w-3xl pt-10 md:pt-16">
+    <div className="container max-w-5xl pt-10 md:pt-16">
       <Reveal className="text-center">
         <h1 className="font-serif text-4xl font-semibold sm:text-5xl">{t("orderTitle")}</h1>
         <p className="mt-3 text-lg text-muted-foreground">{t("orderSubtitle")}</p>
       </Reveal>
-      <OrderForm
-        initialItem={initialItem}
-        whatsappNumber={contact.whatsappNumber}
-        recipes={recipes.map((r) => ({ value: `recipe:${r.id}`, label: lname(r, locale) }))}
-        packs={packs.map((p) => ({ value: `pack:${p.id}`, label: lname(p, locale) }))}
-      />
+      <OrderForm catalog={catalog} initial={initial && catalog.some((c) => c.type === initial.type && c.id === initial.id) ? initial : null} whatsappNumber={contact.whatsappNumber} />
     </div>
   );
 }

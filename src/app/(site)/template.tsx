@@ -1,5 +1,5 @@
 "use client";
-// Cinematic route transition: a plum curtain wipes off the page on every navigation.
+// Cinematic route transition: a blue curtain wipes off the page on every navigation.
 import { motion, useReducedMotion } from "framer-motion";
 
 export default function SiteTemplate({ children }: { children: React.ReactNode }) {

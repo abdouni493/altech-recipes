@@ -8,6 +8,7 @@ import { requireStaff } from "@/lib/authz";
 import { runAction } from "@/lib/action-utils";
 import { findWilaya } from "@/lib/algeria";
 import { V, zodFieldErrors, type ActionResult } from "@/lib/validators";
+import { getPublicRecipeProducts, type PublicRecipeProduct } from "@/lib/public-queries";
 
 // Simple in-memory rate limit: 5 orders / 10 minutes per IP.
 const hits = new Map<string, number[]>();
@@ -32,13 +33,16 @@ export async function createOrderAction(input: OrderInput): Promise<ActionResult
     const commune = wilaya.communes.find((c) => c.fr === d.communeName);
     if (!commune) return { ok: false, error: "site.orderError", fieldErrors: { communeName: V.selectCommune } };
 
-    const [kind, id] = d.item.split(":");
-    // create_order() keeps the recipe only when it is visible on the website, and the pack only when it exists.
-    const orderNumber = await q<string>(db().rpc("create_order", {
-      p_full_name: d.fullName, p_phone: d.phone, p_wilaya_code: wilaya.code, p_wilaya_name: wilaya.fr, p_commune_name: commune.fr,
-      p_recipe_id: kind === "recipe" && id ? id : null, p_pack_id: kind === "pack" && id ? id : null,
-      p_message: d.message, p_wants_client_account: d.wantsClientAccount,
-    }));
+    const base = { p_full_name: d.fullName, p_phone: d.phone, p_wilaya_code: wilaya.code, p_wilaya_name: wilaya.fr, p_commune_name: commune.fr };
+    // create_order_v2() keeps only visible recipes, existing packs and products in stock, and re-reads every price.
+    // An order without items (a simple question) still goes through create_order().
+    const orderNumber = d.items.length
+      ? await q<string>(db().rpc("create_order_v2", {
+          ...base, p_items: d.items, p_message: d.message, p_wants_client_account: d.wantsClientAccount,
+        }))
+      : await q<string>(db().rpc("create_order", {
+          ...base, p_recipe_id: null, p_pack_id: null, p_message: d.message, p_wants_client_account: d.wantsClientAccount,
+        }));
     revalidatePath("/admin", "layout");
     return { ok: true, data: { orderNumber } };
   });
@@ -68,4 +72,9 @@ export async function deleteOrderAction(id: string): Promise<ActionResult> {
     revalidatePath("/admin", "layout");
     return { ok: true };
   });
+}
+
+/** Public: products used by a recipe that can be ordered with it (website order form suggestion). */
+export async function recipeProductsAction(recipeId: string): Promise<ActionResult<PublicRecipeProduct[]>> {
+  return runAction(async () => ({ ok: true, data: await getPublicRecipeProducts(String(recipeId).slice(0, 64)) }));
 }
