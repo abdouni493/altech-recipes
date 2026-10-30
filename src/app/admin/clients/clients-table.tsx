@@ -11,13 +11,19 @@ import { Badge } from "@/components/ui/basic";
 import { DataTable } from "@/components/shared/data-table";
 import { EmptyState } from "@/components/shared/page-header";
 import { normalizeSearch, padSerial } from "@/lib/utils";
+import { Money } from "@/components/commerce/shared";
+import type { PriceType } from "@/lib/commerce";
 import { ClientRowMenu } from "./client-menu";
 
-export type ClientRow = { id: string; serialNumber: number; fullName: string; phone: string; address: string; username: string; permissions: number };
+export type ClientRow = {
+  id: string; serialNumber: number; fullName: string; phone: string; address: string; username: string; permissions: number;
+  debt: number; priceType: PriceType;
+};
 
 export function ClientsTable({ rows }: { rows: ClientRow[] }) {
   const t = useTranslations("clients");
   const tc = useTranslations("common");
+  const tm = useTranslations("commerce");
   const can = useCan();
   const columns = useMemo<ColumnDef<ClientRow, unknown>[]>(() => [
     { id: "serial", accessorKey: "serialNumber", header: t("serial"), meta: { className: "w-20" },
@@ -31,9 +37,13 @@ export function ClientsTable({ rows }: { rows: ClientRow[] }) {
       cell: ({ row }) => <span className="font-mono text-xs" dir="ltr">{row.original.username}</span> },
     { id: "permissions", accessorKey: "permissions", header: t("permittedRecipes"),
       cell: ({ row }) => <Badge variant={row.original.permissions ? "default" : "secondary"}>{tc("recipesCount", { count: row.original.permissions })}</Badge> },
-    { id: "actions", header: () => <span className="sr-only">{tc("actions")}</span>, enableSorting: false, meta: { className: "w-14 text-end" },
+    { id: "priceType", accessorKey: "priceType", header: tm("priceType"), meta: { className: "hidden lg:table-cell" },
+      cell: ({ row }) => <Badge variant="secondary">{tm(`priceTypes.${row.original.priceType}`)}</Badge> },
+    { id: "debt", accessorKey: "debt", header: tm("debt"),
+      cell: ({ row }) => row.original.debt > 0 ? <Money value={row.original.debt} className="font-semibold text-destructive" /> : <span className="text-muted-foreground">—</span> },
+    { id: "actions", header: () => <span className="sr-only">{tc("actions")}</span>, enableSorting: false, meta: { className: "w-28 text-end" },
       cell: ({ row }) => <ClientRowMenu client={row.original} /> },
-  ], [t, tc]);
+  ], [t, tc, tm]);
 
   if (rows.length === 0) {
     return <EmptyState icon={<Users />} title={t("emptyTitle")} description={t("emptyText")}

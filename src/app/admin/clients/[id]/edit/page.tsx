@@ -19,7 +19,7 @@ export default async function EditClientPage({ params }: { params: { id: string 
   return (
     <>
       <PageHeader title={t("editTitle")} description={client.fullName} backHref={`/admin/clients/${client.id}`} backLabel={client.fullName} />
-      <ClientEditForm id={client.id} userId={client.userId} initial={{ fullName: client.fullName, phone: client.phone, address: client.address, username: client.user?.username ?? "" }} />
+      <ClientEditForm id={client.id} userId={client.userId} initial={{ fullName: client.fullName, phone: client.phone, address: client.address, priceType: client.priceType ?? "DETAIL", username: client.user?.username ?? "" }} />
     </>
   );
 }

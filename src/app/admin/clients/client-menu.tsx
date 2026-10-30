@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
-import { Eye, KeyRound, ListChecks, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import { Eye, History, KeyRound, ListChecks, MoreHorizontal, Pencil, Trash2, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
@@ -16,9 +16,11 @@ import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { useActionFeedback } from "@/components/shared/use-action-feedback";
 import { deleteClientAction, resetClientPasswordAction } from "@/actions/clients";
 import { defaultCredential } from "@/lib/utils";
+import { PartyDebtDialog } from "@/components/commerce/debt-dialogs";
+import { PartyHistoryDialog } from "@/components/commerce/party-history-dialog";
 import { CredentialsCard } from "./credentials-card";
 
-type ClientLite = { id: string; fullName: string; serialNumber: number; username: string };
+type ClientLite = { id: string; fullName: string; serialNumber: number; username: string; debt?: number };
 
 function useClientOps(client: ClientLite, afterDelete?: string) {
   const t = useTranslations("clients");
@@ -73,12 +75,19 @@ function Dialogs({ client, ops, confirmReset, setConfirmReset, confirmDelete, se
 export function ClientRowMenu({ client }: { client: ClientLite }) {
   const t = useTranslations("clients");
   const tc = useTranslations("common");
+  const tm = useTranslations("commerce");
   const ops = useClientOps(client);
   const can = useCan();
   const [confirmReset, setConfirmReset] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [history, setHistory] = useState(false);
+  const [paying, setPaying] = useState(false);
   return (
-    <>
+    <div className="flex justify-end gap-0.5">
+      <Button variant="ghost" size="icon-sm" title={tm("history")} aria-label={`${tm("history")} — ${client.fullName}`} onClick={() => setHistory(true)}><History /></Button>
+      {can("sales.pay") && (client.debt ?? 0) > 0 && (
+        <Button variant="ghost" size="icon-sm" className="text-success" title={tm("payDebt")} aria-label={`${tm("payDebt")} — ${client.fullName}`} onClick={() => setPaying(true)}><Wallet /></Button>
+      )}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" size="icon-sm" aria-label={`${tc("actions")} — ${client.fullName}`}><MoreHorizontal /></Button>
@@ -93,7 +102,9 @@ export function ClientRowMenu({ client }: { client: ClientLite }) {
         </DropdownMenuContent>
       </DropdownMenu>
       <Dialogs client={client} ops={ops} confirmReset={confirmReset} setConfirmReset={setConfirmReset} confirmDelete={confirmDelete} setConfirmDelete={setConfirmDelete} />
-    </>
+      {history && <PartyHistoryDialog open onOpenChange={setHistory} kind="client" partyId={client.id} partyName={client.fullName} />}
+      {paying && <PartyDebtDialog open onOpenChange={setPaying} kind="client" partyId={client.id} partyName={client.fullName} />}
+    </div>
   );
 }
 

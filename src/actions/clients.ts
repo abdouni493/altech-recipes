@@ -6,6 +6,7 @@ import { requireStaff } from "@/lib/authz";
 import { isConflict, isForeignKey, runAction } from "@/lib/action-utils";
 import { loginEmailFor } from "@/lib/permissions";
 import { clientInfoSchema, clientCreateSchema, permissionsSchema, type ClientCreateInput, type ClientInfoInput, type PermissionsInput } from "@/lib/client-schemas";
+import type { PriceType } from "@/lib/commerce";
 import { usernameField, zodFieldErrors, type ActionResult } from "@/lib/validators";
 
 const EMAIL_DOMAIN = loginEmailFor("x").split("@")[1];
@@ -41,7 +42,7 @@ function dedupe(perms: PermissionsInput["permissions"]) {
     .map((p) => ({ recipeId: p.recipeId, packId: p.packId ?? null }));
 }
 
-export async function createClientAction(input: ClientCreateInput): Promise<ActionResult<{ id: string; serial: number; username: string; password: string; fullName: string }>> {
+export async function createClientAction(input: ClientCreateInput): Promise<ActionResult<{ id: string; serial: number; username: string; password: string; fullName: string; phone: string; priceType: PriceType }>> {
   return runAction(async () => {
     await requireStaff("clients.create");
     const parsed = clientCreateSchema.safeParse(input);
@@ -55,8 +56,9 @@ export async function createClientAction(input: ClientCreateInput): Promise<Acti
         p_auto: data.credentialsAuto, p_username: data.username, p_password: data.password,
         p_permissions: dedupe(data.permissions), p_email_domain: EMAIL_DOMAIN,
       }));
+      if (data.priceType !== "DETAIL") await q(db().rpc("set_client_price_type", { p_client_id: result.id, p_price_type: data.priceType }));
       revalidatePath("/admin", "layout");
-      return { ok: true, data: { ...result, fullName: data.fullName } };
+      return { ok: true, data: { ...result, fullName: data.fullName, priceType: data.priceType, phone: data.phone } };
     } catch (e) {
       if (isConflict(e)) return usernameTaken;
       if (isForeignKey(e)) return { ok: false, error: "validation.invalidSelection" };
@@ -76,6 +78,7 @@ export async function updateClientAction(id: string, input: ClientInfoInput & { 
         p_id: id, p_full_name: parsed.data.fullName, p_phone: parsed.data.phone, p_address: parsed.data.address,
         p_username: parsed.data.username, p_login_email: loginEmailFor(parsed.data.username),
       }));
+      await q(db().rpc("set_client_price_type", { p_client_id: id, p_price_type: parsed.data.priceType }));
     } catch (e) {
       if (isConflict(e)) return usernameTaken;
       throw e;

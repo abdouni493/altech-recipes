@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AnimatePresence, motion } from "framer-motion";
 import { useLocale, useTranslations } from "next-intl";
@@ -15,7 +15,9 @@ import { Field } from "@/components/shared/form-fields";
 import { Stepper } from "@/components/shared/stepper";
 import { CopyButton } from "@/components/shared/copy-button";
 import { useActionFeedback } from "@/components/shared/use-action-feedback";
+import { PriceTypeSelect } from "@/components/commerce/price-type-select";
 import { checkUsernameAction, createClientAction } from "@/actions/clients";
+import type { PriceType } from "@/lib/commerce";
 import { clientInfoSchema, credentialsSchema } from "@/lib/client-schemas";
 import type { RecipeLiteDTO } from "@/lib/dto";
 import { lname } from "@/lib/i18n-data";
@@ -24,15 +26,19 @@ import { CredentialsCard } from "./credentials-card";
 import { PermissionsEditor, stateToPermissions, type PackWithRecipes, type PermissionState } from "./permissions-editor";
 
 const wizardSchema = clientInfoSchema.merge(credentialsSchema);
-type WizardValues = { fullName: string; phone: string; address: string; username: string; password: string; credentialsAuto: boolean };
+type WizardValues = { fullName: string; phone: string; address: string; priceType: PriceType; username: string; password: string; credentialsAuto: boolean };
+export type CreatedClient = { id: string; serial: number; username: string; password: string; fullName: string; phone: string; priceType: PriceType };
 
 export function ClientWizard({
-  nextSerial, packs, recipes, prefill,
+  nextSerial, packs, recipes, prefill, onCreated, onCancel,
 }: {
   nextSerial: number;
   packs: PackWithRecipes[];
   recipes: RecipeLiteDTO[];
   prefill?: { fullName?: string; phone?: string; orderNumber?: string; recipeId?: string | null; packId?: string | null };
+  /** Embedded use (e.g. point of sale): called with the new client instead of the "what next" links. */
+  onCreated?: (client: CreatedClient) => void;
+  onCancel?: () => void;
 }) {
   const t = useTranslations("clients");
   const tc = useTranslations("common");
@@ -44,7 +50,7 @@ export function ClientWizard({
   const [direction, setDirection] = useState(1);
   const [usernameState, setUsernameState] = useState<"idle" | "checking" | "ok" | "taken">("idle");
   const [submitting, setSubmitting] = useState(false);
-  const [created, setCreated] = useState<null | { id: string; serial: number; username: string; password: string; fullName: string }>(null);
+  const [created, setCreated] = useState<null | CreatedClient>(null);
 
   // Pre-select the pack/recipe requested in the originating order.
   const initialPerms = useMemo<PermissionState>(() => {
@@ -57,7 +63,7 @@ export function ClientWizard({
 
   const form = useForm<WizardValues>({
     resolver: zodResolver(wizardSchema),
-    defaultValues: { fullName: prefill?.fullName ?? "", phone: prefill?.phone ?? "", address: "", username: "", password: "", credentialsAuto: true },
+    defaultValues: { fullName: prefill?.fullName ?? "", phone: prefill?.phone ?? "", address: "", priceType: "DETAIL", username: "", password: "", credentialsAuto: true },
     mode: "onTouched",
   });
   const values = form.watch();
@@ -91,7 +97,7 @@ export function ClientWizard({
     { key: "permissions", title: t("steps.permissions"), hint: t("steps.permissionsHint") },
     { key: "review", title: t("steps.review"), hint: t("steps.reviewHint") },
   ];
-  const stepFields: (keyof WizardValues)[][] = [["fullName", "phone", "address"], ["username", "password"], [], []];
+  const stepFields: (keyof WizardValues)[][] = [["fullName", "phone", "address", "priceType"], ["username", "password"], [], []];
 
   async function goTo(target: number) {
     if (target > step) {
@@ -139,11 +145,13 @@ export function ClientWizard({
               <p className="mt-2 text-sm text-muted-foreground">{t("successText")}</p>
             </div>
             <div className="text-start"><CredentialsCard {...created} /></div>
-            <div className="flex flex-wrap justify-center gap-2">
+            {onCreated ? (
+              <Button onClick={() => onCreated(created)}><CheckCircle2 />{t("useThisClient")}</Button>
+            ) : <div className="flex flex-wrap justify-center gap-2">
               <Button asChild variant="outline"><Link href="/admin/clients">{t("backToList")}</Link></Button>
               <Button asChild variant="outline"><Link href={`/admin/clients/${created.id}`}>{t("viewClient")}</Link></Button>
               <Button onClick={() => window.location.assign("/admin/clients/new")}><UserPlus />{t("createAnother")}</Button>
-            </div>
+            </div>}
           </CardContent>
         </Card>
       </motion.div>
@@ -176,6 +184,9 @@ export function ClientWizard({
                   </Field>
                   <Field label={t("address")} htmlFor="c-address" optional optionalLabel={tc("optional")} error={e.address?.message}>
                     <Textarea id="c-address" rows={2} placeholder={t("addressPlaceholder")} {...form.register("address")} />
+                  </Field>
+                  <Field label={t("priceType")} htmlFor="c-price-type" hint={t("priceTypeHint")}>
+                    <Controller control={form.control} name="priceType" render={({ field }) => <PriceTypeSelect id="c-price-type" value={field.value} onChange={field.onChange} />} />
                   </Field>
                 </div>
               )}
@@ -261,7 +272,7 @@ export function ClientWizard({
       </AnimatePresence>
 
       <div className="flex items-center justify-between gap-3">
-        <Button type="button" variant="outline" onClick={() => (step === 0 ? router.back() : goTo(step - 1))}>
+        <Button type="button" variant="outline" onClick={() => (step === 0 ? (onCancel ? onCancel() : router.back()) : goTo(step - 1))}>
           <ArrowLeft className="flip-rtl" />{step === 0 ? tc("cancel") : tc("previous")}
         </Button>
         {step < 3 ? (

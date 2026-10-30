@@ -1,10 +1,13 @@
 import { z } from "zod";
+import { PRICE_TYPES } from "@/lib/commerce";
 import { optionalText, passwordField, phoneField, requiredText, usernameField } from "@/lib/validators";
 
 export const clientInfoSchema = z.object({
   fullName: requiredText(120),
   phone: phoneField,
   address: optionalText(300),
+  /** Selling price applied at the point of sale. */
+  priceType: z.enum(PRICE_TYPES).default("DETAIL"),
 });
 export type ClientInfoInput = z.input<typeof clientInfoSchema>;
 

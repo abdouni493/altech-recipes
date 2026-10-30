@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
@@ -10,12 +10,14 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, Input, Textarea } from "@/components/ui/basic";
 import { Field } from "@/components/shared/form-fields";
 import { useActionFeedback } from "@/components/shared/use-action-feedback";
+import { PriceTypeSelect } from "@/components/commerce/price-type-select";
 import { updateClientAction } from "@/actions/clients";
+import type { PriceType } from "@/lib/commerce";
 import { clientInfoSchema } from "@/lib/client-schemas";
 import { usernameField } from "@/lib/validators";
 
 const schema = clientInfoSchema.extend({ username: usernameField });
-type Values = { fullName: string; phone: string; address: string; username: string };
+type Values = { fullName: string; phone: string; address: string; username: string; priceType: PriceType };
 
 export function ClientEditForm({ id, initial }: { id: string; userId: string; initial: Values }) {
   const t = useTranslations("clients");
@@ -48,6 +50,9 @@ export function ClientEditForm({ id, initial }: { id: string; userId: string; in
           </Field>
           <Field label={t("address")} htmlFor="e-address" optional optionalLabel={tc("optional")}>
             <Textarea id="e-address" rows={2} {...form.register("address")} />
+          </Field>
+          <Field label={t("priceType")} htmlFor="e-price-type" hint={t("priceTypeHint")}>
+            <Controller control={form.control} name="priceType" render={({ field }) => <PriceTypeSelect id="e-price-type" value={field.value} onChange={field.onChange} />} />
           </Field>
           <Field label={t("username")} htmlFor="e-username" error={e.username?.message}>
             <Input id="e-username" dir="ltr" className="font-mono" {...form.register("username")} aria-invalid={!!e.username} />
