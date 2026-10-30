@@ -34,5 +34,15 @@
     "login": "Connexion",
     "myArea": "Mon espace",
     "products": "Produits"
+  },
+  "groups": {
+    "overview": "Vue d’ensemble",
+    "catalog": "Catalogue",
+    "commerce": "Commerce",
+    "people": "Contacts",
+    "system": "Système",
+    "workspace": "Espace de travail",
+    "tools": "Outils",
+    "account": "Compte"
   }
 }

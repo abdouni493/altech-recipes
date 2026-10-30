@@ -34,5 +34,15 @@
     "login": "تسجيل الدخول",
     "myArea": "فضائي",
     "products": "المنتجات"
+  },
+  "groups": {
+    "overview": "نظرة عامة",
+    "catalog": "الكتالوج",
+    "commerce": "التجارة",
+    "people": "جهات الاتصال",
+    "system": "النظام",
+    "workspace": "مساحة العمل",
+    "tools": "الأدوات",
+    "account": "الحساب"
   }
 }
