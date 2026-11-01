@@ -215,7 +215,7 @@ export function AppShell({
 
       <div className={cn("flex min-h-screen flex-col transition-[padding] duration-300", collapsed ? "lg:ps-[76px]" : "lg:ps-64")}>
         <ScrollProgress />
-        <header className="no-print sticky top-0 z-30 flex h-16 items-center gap-2 border-b bg-background/90 px-4 backdrop-blur-md sm:px-6">
+        <header className="no-print sticky top-0 z-30 flex h-14 items-center gap-2 border-b bg-background/90 px-3 backdrop-blur-md sm:h-16 sm:px-6">
           <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setMobileOpen(true)} aria-label={t("openMenu")}>
             <Menu />
           </Button>
@@ -266,7 +266,7 @@ export function AppShell({
         </header>
         <motion.main id="main" key={pathname} initial={reduce ? { opacity: 0 } : { opacity: 0, y: 28, clipPath: "inset(0% 0% 12% 0%)" }}
             animate={{ opacity: 1, y: 0, clipPath: "inset(0% 0% 0% 0%)" }} transition={{ duration: 0.7, ease: [0.76, 0, 0.24, 1] }}
-            className="mx-auto w-full max-w-[1400px] flex-1 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+            className="mx-auto w-full max-w-[1400px] flex-1 px-3 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
             {children}
           </motion.main>
       </div>

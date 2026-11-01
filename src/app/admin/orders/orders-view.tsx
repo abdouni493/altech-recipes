@@ -8,7 +8,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { toast } from "sonner";
 import type { ColumnDef } from "@tanstack/react-table";
 import {
-  BookOpen, Boxes, CheckCircle2, Eye, MessageCircle, MoreHorizontal, Package, Phone, Receipt, RotateCcw, ShoppingBag, Trash2, UserPlus, XCircle,
+  BookOpen, Boxes, ChefHat, CheckCircle2, Copy, Eye, MessageCircle, MoreHorizontal, Package, Phone, Receipt, RotateCcw, ShoppingBag, Trash2, UserPlus, XCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge, Input } from "@/components/ui/basic";
@@ -26,6 +26,7 @@ import { WILAYAS } from "@/lib/algeria";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/primitives";
 import { Money } from "@/components/commerce/shared";
 import { formatDate, formatNumber } from "@/lib/format";
+import { formatMoney } from "@/lib/commerce";
 import { cn, normalizeSearch, whatsappLink } from "@/lib/utils";
 
 export type OrderRow = {
@@ -33,12 +34,35 @@ export type OrderRow = {
   item: { kind: "recipe" | "pack"; name: string } | null; message: string; wantsClientAccount: boolean;
   status: "PENDING" | "CONFIRMED" | "CANCELLED"; createdAt: string; confirmedAt: string | null; cancelledAt: string | null;
   total: number;
+  isCustom: boolean; customRecipeName: string;
   items: { id: string; type: "RECIPE" | "PACK" | "PRODUCT"; productId: string | null; name: string; quantity: number; unitPrice: number; lineTotal: number }[];
 };
 
 const ITEM_ICONS = { RECIPE: BookOpen, PACK: Boxes, PRODUCT: Package } as const;
 
 type PendingAction = { order: OrderRow; status: "CONFIRMED" | "CANCELLED" } | null;
+
+/** Plain-text summary of an order (client, address, every item and the total) for the clipboard. */
+function orderText(o: OrderRow, t: (key: string) => string, status: string, locale: string, money: (v: number) => string) {
+  const lines = [
+    `${t("order")}: ${o.orderNumber}`,
+    `${t("date")}: ${formatDate(o.createdAt, locale, true)}`,
+    `${t("status")}: ${status}`,
+    ...(o.isCustom ? [`${t("customRecipe")}: ${o.customRecipeName}`] : []),
+    "",
+    `${t("client")}: ${o.fullName}`,
+    `${t("phone")}: ${o.phone}`,
+    `${t("address")}: ${o.communeName}, ${o.wilayaCode} - ${o.wilayaName}`,
+    ...(o.wantsClientAccount ? [`${t("wantsAccount")}`] : []),
+    "",
+    `${t("items")}:`,
+    ...o.items.map((i) => `- ${formatNumber(i.quantity, locale)} × ${i.name} = ${money(i.lineTotal)}`),
+    "",
+    `${t("total")}: ${money(o.total)}`,
+    ...(o.message ? ["", `${t("message")}: ${o.message}`] : []),
+  ];
+  return lines.join("\n");
+}
 
 export function OrdersView({ rows, siteName }: { rows: OrderRow[]; siteName: string }) {
   const t = useTranslations("orders");
@@ -55,6 +79,18 @@ export function OrdersView({ rows, siteName }: { rows: OrderRow[]; siteName: str
   const [detail, setDetail] = useState<OrderRow | null>(null);
   const [pending, setPending] = useState<PendingAction>(null);
   const [toDelete, setToDelete] = useState<OrderRow | null>(null);
+  const [kind, setKind] = useState<"all" | "standard" | "custom">(params.get("kind") === "custom" ? "custom" : "all");
+  const ts = useTranslations("shop.orders");
+
+  async function copyOrder(o: OrderRow) {
+    const text = orderText(o, (k) => ts(`text.${k}`), t(`status.${o.status}`), locale, (v) => formatMoney(v, locale));
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success(ts("copied"));
+    } catch {
+      toast.error(ts("copyFailed"));
+    }
+  }
 
   useEffect(() => {
     const id = params.get("open");
@@ -74,12 +110,13 @@ export function OrdersView({ rows, siteName }: { rows: OrderRow[]; siteName: str
 
   const filtered = useMemo(() => rows.filter((r) => {
     if (status !== "all" && r.status !== status) return false;
+    if (kind !== "all" && r.isCustom !== (kind === "custom")) return false;
     if (wilaya !== "all" && r.wilayaCode !== wilaya) return false;
     const d = r.createdAt.slice(0, 10);
     if (from && d < from) return false;
     if (to && d > to) return false;
     return true;
-  }), [rows, status, wilaya, from, to]);
+  }), [rows, status, wilaya, from, to, kind]);
 
   const usedWilayas = useMemo(() => WILAYAS.filter((w) => rows.some((r) => r.wilayaCode === w.code)), [rows]);
 
@@ -90,6 +127,7 @@ export function OrdersView({ rows, siteName }: { rows: OrderRow[]; siteName: str
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56" onClick={(e) => e.stopPropagation()}>
         <DropdownMenuItem onSelect={() => setDetail(o)}><Eye />{t("actions.details")}</DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => copyOrder(o)}><Copy />{ts("copy")}</DropdownMenuItem>
         {can("orders.edit") && o.status !== "CONFIRMED" && <DropdownMenuItem onSelect={() => setPending({ order: o, status: "CONFIRMED" })}><CheckCircle2 />{t("actions.confirm")}</DropdownMenuItem>}
         {can("orders.edit") && o.status !== "CANCELLED" && <DropdownMenuItem onSelect={() => setPending({ order: o, status: "CANCELLED" })}><XCircle />{t("actions.cancel")}</DropdownMenuItem>}
         {can("orders.edit") && o.status !== "PENDING" && <DropdownMenuItem onSelect={() => changeStatus(o, "PENDING")}><RotateCcw />{t("status.PENDING")}</DropdownMenuItem>}
@@ -105,7 +143,8 @@ export function OrdersView({ rows, siteName }: { rows: OrderRow[]; siteName: str
     { id: "orderNumber", accessorKey: "orderNumber", header: t("orderNumber"), cell: ({ row }) => <span className="whitespace-nowrap font-mono text-xs font-semibold">{row.original.orderNumber}</span> },
     { id: "date", accessorKey: "createdAt", header: t("date"), cell: ({ row }) => <span className="whitespace-nowrap text-muted-foreground">{formatDate(row.original.createdAt, locale)}</span> },
     { id: "fullName", accessorKey: "fullName", header: t("fullName"), cell: ({ row }) => (
-      <span className="flex items-center gap-2 font-medium">{row.original.fullName}{row.original.wantsClientAccount && <UserPlus className="h-3.5 w-3.5 text-primary" aria-label={t("wantsAccount")} />}</span>
+      <span className="flex flex-wrap items-center gap-2 font-medium">{row.original.fullName}{row.original.wantsClientAccount && <UserPlus className="h-3.5 w-3.5 text-primary" aria-label={t("wantsAccount")} />}
+        {row.original.isCustom && <Badge variant="lemon"><ChefHat className="h-3 w-3" />{ts("customShort")}</Badge>}</span>
     ) },
     { id: "phone", accessorKey: "phone", header: t("phone"), cell: ({ row }) => <a href={`tel:${row.original.phone}`} onClick={(e) => e.stopPropagation()} dir="ltr" className="whitespace-nowrap hover:text-primary">{row.original.phone}</a> },
     { id: "wilaya", accessorFn: (r) => r.wilayaCode, header: t("wilaya"), meta: { className: "hidden md:table-cell" }, cell: ({ row }) => <span className="whitespace-nowrap">{row.original.wilayaCode} · {row.original.wilayaName}</span> },
@@ -129,13 +168,14 @@ export function OrdersView({ rows, siteName }: { rows: OrderRow[]; siteName: str
     { id: "status", accessorKey: "status", header: tc("status"), cell: ({ row }) => <OrderStatusBadge status={row.original.status} /> },
     { id: "actions", header: () => <span className="sr-only">{tc("actions")}</span>, enableSorting: false, meta: { className: "w-14 text-end" }, cell: ({ row }) => actionsMenu(row.original) },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  ], [locale, t, tc]);
+  ], [locale, t, tc, ts]);
 
   if (rows.length === 0) return <EmptyState icon={<ShoppingBag />} title={t("emptyTitle")} />;
 
   const counts: Record<OrderRow["status"], number> = { PENDING: 0, CONFIRMED: 0, CANCELLED: 0 };
   for (const r of rows) counts[r.status]++;
-  const resetFilters = () => { setStatus("all"); setWilaya("all"); setFrom(""); setTo(""); };
+  const resetFilters = () => { setStatus("all"); setWilaya("all"); setFrom(""); setTo(""); setKind("all"); };
+  const customCount = rows.filter((r) => r.isCustom).length;
   const d = detail;
 
   return (
@@ -151,11 +191,19 @@ export function OrdersView({ rows, siteName }: { rows: OrderRow[]; siteName: str
           ))}
         </TabsList>
       </Tabs>
-      <div className="mb-4 flex flex-wrap items-end gap-3 rounded-xl border bg-card p-3">
-        <div className="space-y-1">
+      <div className="mb-4 flex flex-wrap gap-2">
+        {([["all", ts("kindAll"), rows.length], ["standard", ts("kindStandard"), rows.length - customCount], ["custom", ts("kindCustom"), customCount]] as const).map(([k, label, n]) => (
+          <button key={k} type="button" onClick={() => setKind(k)} aria-pressed={kind === k}
+            className={cn("inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-sm font-medium transition", kind === k ? "border-primary bg-primary text-primary-foreground" : "bg-card hover:border-primary/50")}>
+            {k === "custom" && <ChefHat className="h-3.5 w-3.5" />}{label}<span className={cn("rounded-full px-1.5 text-xs", kind === k ? "bg-white/20" : "bg-secondary")}>{n}</span>
+          </button>
+        ))}
+      </div>
+      <div className="mb-4 grid grid-cols-2 items-end gap-3 rounded-xl border bg-card p-3 sm:flex sm:flex-wrap">
+        <div className="col-span-2 space-y-1 sm:col-span-1">
           <label className="text-xs font-medium text-muted-foreground" id="f-wilaya">{t("filters.wilaya")}</label>
           <Select value={wilaya} onValueChange={setWilaya}>
-            <SelectTrigger className="h-9 w-52" aria-labelledby="f-wilaya"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="h-9 w-full sm:w-52" aria-labelledby="f-wilaya"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">{t("filters.allWilayas")}</SelectItem>
               {usedWilayas.map((w) => <SelectItem key={w.code} value={w.code}>{w.code} · {locale === "ar" ? w.ar : w.fr}</SelectItem>)}
@@ -164,11 +212,11 @@ export function OrdersView({ rows, siteName }: { rows: OrderRow[]; siteName: str
         </div>
         <div className="space-y-1">
           <label htmlFor="f-from" className="text-xs font-medium text-muted-foreground">{t("filters.from")}</label>
-          <Input id="f-from" type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="h-9 w-40" />
+          <Input id="f-from" type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="h-9 w-full sm:w-40" />
         </div>
         <div className="space-y-1">
           <label htmlFor="f-to" className="text-xs font-medium text-muted-foreground">{t("filters.to")}</label>
-          <Input id="f-to" type="date" value={to} onChange={(e) => setTo(e.target.value)} className="h-9 w-40" />
+          <Input id="f-to" type="date" value={to} onChange={(e) => setTo(e.target.value)} className="h-9 w-full sm:w-40" />
         </div>
         <Button variant="ghost" size="sm" onClick={resetFilters}><RotateCcw />{t("filters.reset")}</Button>
       </div>
@@ -183,8 +231,18 @@ export function OrdersView({ rows, siteName }: { rows: OrderRow[]; siteName: str
             <div className="space-y-6">
               <div className="space-y-2 pe-8">
                 <DialogTitle className="font-serif text-2xl font-semibold">{t("detailsTitle", { number: d.orderNumber })}</DialogTitle>
-                <OrderStatusBadge status={d.status} />
+                <div className="flex flex-wrap items-center gap-2">
+                  <OrderStatusBadge status={d.status} />
+                  {d.isCustom && <Badge variant="lemon"><ChefHat className="h-3 w-3" />{ts("custom")}</Badge>}
+                  <Button size="sm" variant="outline" className="ms-auto" onClick={() => copyOrder(d)}><Copy />{ts("copy")}</Button>
+                </div>
               </div>
+              {d.isCustom && (
+                <div className="flex items-center gap-3 rounded-xl border-2 border-lemon bg-lemon/10 p-3">
+                  <ChefHat className="h-5 w-5 shrink-0 text-primary" />
+                  <div><div className="text-xs text-muted-foreground">{ts("custom")}</div><div className="font-semibold">{d.customRecipeName}</div></div>
+                </div>
+              )}
               <dl className="divide-y rounded-xl border text-sm">
                 {[
                   [t("fullName"), d.fullName],
@@ -196,7 +254,7 @@ export function OrdersView({ rows, siteName }: { rows: OrderRow[]; siteName: str
                   ...(d.confirmedAt ? [[t("confirmedAt"), formatDate(d.confirmedAt, locale, true)]] : []),
                   ...(d.cancelledAt ? [[t("cancelledAt"), formatDate(d.cancelledAt, locale, true)]] : []),
                 ].map(([k, v], i) => (
-                  <div key={i} className="grid grid-cols-[9rem_1fr] gap-3 p-3">
+                  <div key={i} className="grid grid-cols-[7rem_1fr] gap-3 p-3 sm:grid-cols-[9rem_1fr]">
                     <dt className="text-muted-foreground">{k}</dt><dd className="font-medium">{v}</dd>
                   </div>
                 ))}

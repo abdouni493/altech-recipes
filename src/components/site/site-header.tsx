@@ -32,6 +32,8 @@ export function SiteHeader({ siteName, logoUrl, role }: { siteName: string; logo
     { href: "/", label: t("home") },
     { href: "/recettes", label: t("recipes") },
     { href: "/produits", label: t("products") },
+    { href: "/packs", label: t("packs") },
+    { href: "/recette-personnalisee", label: t("custom") },
     { href: "/commander", label: t("order") },
     { href: "/#contact", label: t("contact") },
   ];
@@ -50,10 +52,10 @@ export function SiteHeader({ siteName, logoUrl, role }: { siteName: string; logo
     <header className={cn("sticky top-0 z-40 transition-all duration-500", scrolled || open ? "border-b bg-background/90 shadow-sm backdrop-blur-md" : "bg-background/0", overHero && "text-white")}>
       <div className="container flex h-16 items-center gap-4 md:h-20">
         <Logo name={siteName} logoUrl={logoUrl} />
-        <nav className="ms-6 hidden items-center gap-1 md:flex" aria-label={tc("openMenu")}>
+        <nav className="ms-4 hidden items-center lg:flex" aria-label={tc("openMenu")}>
           {links.map((l) => (
             <Link key={l.href} href={l.href} aria-current={isActive(l.href) ? "page" : undefined}
-              className={cn("group relative px-4 py-2 font-label text-xs font-bold uppercase tracking-[0.18em] transition-colors hover:text-primary",
+              className={cn("group relative px-3 py-2 font-label text-xs font-bold uppercase tracking-[0.18em] transition-colors hover:text-primary",
                 overHero ? (isActive(l.href) ? "text-lemon" : "text-white/85 hover:text-white") : isActive(l.href) ? "text-primary" : "text-foreground/80")}>
               {l.label}
               <span aria-hidden className={cn("absolute inset-x-4 -bottom-0.5 h-0.5 origin-left scale-x-0 transition-transform duration-500 ease-[cubic-bezier(0.76,0,0.24,1)] group-hover:scale-x-100 rtl:origin-right", overHero ? "bg-white" : "bg-primary")} />
@@ -69,7 +71,7 @@ export function SiteHeader({ siteName, logoUrl, role }: { siteName: string; logo
           <Button asChild size="sm" className="ms-1 hidden sm:inline-flex">
             <Link href={areaHref}><UserRound />{areaLabel}{!role && <span className="hidden lg:inline"> / {t("login")}</span>}</Link>
           </Button>
-          <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setOpen((o) => !o)} aria-expanded={open} aria-label={tc("openMenu")}>
+          <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setOpen((o) => !o)} aria-expanded={open} aria-label={tc("openMenu")}>
             {open ? <X /> : <Menu />}
           </Button>
         </div>
@@ -77,7 +79,7 @@ export function SiteHeader({ siteName, logoUrl, role }: { siteName: string; logo
       <AnimatePresence>
         {open && (
           <motion.nav initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }}
-            className="overflow-hidden border-t bg-background md:hidden">
+            className="overflow-hidden border-t bg-background lg:hidden">
             <div className="container flex flex-col gap-1 py-4">
               {links.map((l) => (
                 <Link key={l.href} href={l.href} className={cn("rounded-sm px-4 py-3 font-label text-sm font-bold uppercase tracking-[0.15em]", isActive(l.href) ? "bg-sage-soft text-primary" : "hover:bg-secondary")}>{l.label}</Link>

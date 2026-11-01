@@ -41,6 +41,7 @@ export default async function OrdersPage() {
       communeName: commune ? (locale === "ar" ? commune.ar : commune.fr) : o.communeName,
       item: o.recipe ? { kind: "recipe", name: lname(o.recipe, locale) } : o.pack ? { kind: "pack", name: lname(o.pack, locale) } : null,
       message: o.message, wantsClientAccount: o.wantsClientAccount, status: o.status as OrderRow["status"],
+      isCustom: Boolean(o.isCustom), customRecipeName: o.customRecipeName ?? "",
       createdAt: o.createdAt, confirmedAt: o.confirmedAt, cancelledAt: o.cancelledAt,
       total: toNumber(o.total),
       items: [...(o.items ?? [])].sort((a, b) => a.position - b.position).map((i) => {

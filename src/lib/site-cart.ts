@@ -3,10 +3,14 @@
 import { useCallback, useEffect, useState } from "react";
 
 export type CartItemType = "RECIPE" | "PACK" | "PRODUCT";
-export type CartItem = { type: CartItemType; id: string; quantity: number };
+/** `tierId`: a product quantity offer (e.g. 5 kg); `quantity` then counts offers. */
+export type CartItem = { type: CartItemType; id: string; quantity: number; tierId?: string | null };
 
 const KEY = "altech-order-cart";
 const EVENT = "altech-cart-change";
+
+export const sameLine = (a: Pick<CartItem, "type" | "id" | "tierId">, b: Pick<CartItem, "type" | "id" | "tierId">) =>
+  a.type === b.type && a.id === b.id && (a.tierId ?? null) === (b.tierId ?? null);
 
 function read(): CartItem[] {
   try {
@@ -36,10 +40,11 @@ export function useSiteCart() {
     return () => { window.removeEventListener(EVENT, sync); window.removeEventListener("storage", sync); };
   }, []);
   const set = useCallback((next: CartItem[]) => { setItems(next); write(next); }, []);
-  const add = useCallback((type: CartItemType, id: string, quantity = 1) => {
+  const add = useCallback((type: CartItemType, id: string, quantity = 1, tierId: string | null = null) => {
     const cur = read();
-    const i = cur.findIndex((x) => x.type === type && x.id === id);
-    const next = i >= 0 ? cur.map((x, j) => (j === i ? { ...x, quantity: x.quantity + quantity } : x)) : [...cur, { type, id, quantity }];
+    const line = { type, id, tierId };
+    const i = cur.findIndex((x) => sameLine(x, line));
+    const next = i >= 0 ? cur.map((x, j) => (j === i ? { ...x, quantity: x.quantity + quantity } : x)) : [...cur, { ...line, quantity }];
     set(next);
   }, [set]);
   return { items, set, add, clear: () => set([]) };

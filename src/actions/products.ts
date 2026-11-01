@@ -12,7 +12,7 @@ export async function saveProductAction(id: string | null, input: ProductInput):
     await requireStaff(id ? "products.edit" : "products.create");
     const parsed = productSchema.safeParse(input);
     if (!parsed.success) return { ok: false, error: "validation.invalid", fieldErrors: zodFieldErrors(parsed.error) };
-    const { stockQuantity, ...rest } = parsed.data;
+    const { stockQuantity, tiers, ...rest } = parsed.data;
     // The stock of an existing product only moves with purchases, sales and adjustments.
     const row = snake(id ? rest : { ...rest, stockQuantity });
     try {
@@ -21,6 +21,8 @@ export async function saveProductAction(id: string | null, input: ProductInput):
           ? db().from("products").update(row).eq("id", id).select("id, name").single()
           : db().from("products").insert(row).select("id, name").single(),
       );
+      // Quantity offers (supabase/website-3.sql).
+      await q(db().rpc("save_product_tiers", { p_product_id: product.id, p_tiers: tiers }));
       revalidatePath("/admin/products");
       revalidatePath("/admin/recipes", "layout");
       revalidatePath("/admin/pos");

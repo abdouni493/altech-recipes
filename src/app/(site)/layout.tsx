@@ -31,6 +31,9 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
             <ul className="space-y-2 opacity-80">
               <li><Link href="/" className="hover:underline">{tn("home")}</Link></li>
               <li><Link href="/recettes" className="hover:underline">{tn("recipes")}</Link></li>
+              <li><Link href="/produits" className="hover:underline">{tn("products")}</Link></li>
+              <li><Link href="/packs" className="hover:underline">{tn("packs")}</Link></li>
+              <li><Link href="/recette-personnalisee" className="hover:underline">{tn("custom")}</Link></li>
               <li><Link href="/commander" className="hover:underline">{tn("order")}</Link></li>
               <li><Link href="/login" className="hover:underline">{tn("clientArea")}</Link></li>
             </ul>

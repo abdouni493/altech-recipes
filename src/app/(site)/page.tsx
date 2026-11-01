@@ -5,14 +5,14 @@ import {
   Phone, Printer, Quote, Send, Sparkles,
 } from "lucide-react";
 import { getContactSettings, getSiteSettings, localized, parseHeroImages } from "@/lib/site";
-import { getPublicPacks, getPublicRecipes } from "@/lib/public-queries";
-import { formatMoney } from "@/lib/commerce";
+import { getPublicCategories, getPublicPacks, getPublicProducts, getPublicRecipes } from "@/lib/public-queries";
+import { productItem, recipeItem } from "@/lib/shop";
 import { HeroSlider } from "@/components/site/hero-slider";
-import { PublicRecipeCard } from "@/components/site/public-recipe-card";
+import { ShopCatalog } from "@/components/site/shop";
+import { CalculatorAd, CustomRecipeCta, PacksShowcase } from "@/components/site/promos";
 import { SocialLinks, WhatsAppIcon } from "@/components/site/social-icons";
 import { Marquee, Reveal, Stagger, StaggerItem, TextReveal } from "@/components/shared/motion";
 import { Button } from "@/components/ui/button";
-import { ldesc, lname } from "@/lib/i18n-data";
 import { whatsappLink } from "@/lib/utils";
 
 export default async function HomePage() {
@@ -20,7 +20,10 @@ export default async function HomePage() {
   const t = await getTranslations("site");
   const tc = await getTranslations("common");
   const tn = await getTranslations("nav.site");
-  const [settings, contact, featured, packs] = await Promise.all([getSiteSettings(), getContactSettings(), getPublicRecipes(6), getPublicPacks()]);
+  const ts = await getTranslations("shop");
+  const [settings, contact, recipes, packs, products, categories] = await Promise.all([
+    getSiteSettings(), getContactSettings(), getPublicRecipes(), getPublicPacks(), getPublicProducts(), getPublicCategories(),
+  ]);
   const heroImages = parseHeroImages(settings);
 
   const steps = [
@@ -37,17 +40,69 @@ export default async function HomePage() {
 
       <Marquee className="overflow-hidden border-y bg-cream py-6 text-primary" items={[tn("recipes"), t("featuredTitle"), t("packsTitle"), tn("order")]} />
 
+      {/* Products: every product, directly on the home page */}
+      {products.length > 0 && (
+        <section id="produits" className="container scroll-mt-24 py-12 md:py-20">
+          <Reveal className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between md:mb-8">
+            <div>
+              <p className="eyebrow">01 · {tn("products")}</p>
+              <h2 className="mt-2 font-serif text-3xl font-bold sm:text-5xl">{ts("productsTitle")}</h2>
+              <p className="mt-2 text-muted-foreground">{ts("productsSubtitle")}</p>
+            </div>
+          </Reveal>
+          <ShopCatalog items={products.map(productItem)} categories={categories.filter((c) => c.kind === "PRODUCT")} />
+        </section>
+      )}
+
+      {/* Calculator advert + personalized recipe */}
+      <section className="container grid gap-4 pb-12 md:pb-20 lg:grid-cols-2">
+        <Reveal><CalculatorAd whatsappNumber={contact.whatsappNumber} className="h-full" /></Reveal>
+        <Reveal delay={0.1}><CustomRecipeCta className="h-full" /></Reveal>
+      </section>
+
+      {/* Recipes */}
+      {recipes.length > 0 && (
+        <section className="bg-cream py-12 md:py-20">
+          <div className="container">
+            <Reveal className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between md:mb-8">
+              <div>
+                <p className="eyebrow">02 · {tn("recipes")}</p>
+                <h2 className="mt-2 font-serif text-3xl font-bold sm:text-5xl">{t("featuredTitle")}</h2>
+                <p className="mt-2 text-muted-foreground">{t("featuredSubtitle")}</p>
+              </div>
+              <Button asChild variant="outline"><Link href="/recettes">{t("seeAllRecipes")}<ArrowRight className="flip-rtl" /></Link></Button>
+            </Reveal>
+            <ShopCatalog items={recipes.map(recipeItem)} categories={categories.filter((c) => c.kind === "RECIPE")} limit={8} />
+          </div>
+        </section>
+      )}
+
+      {/* Packs */}
+      {packs.length > 0 && (
+        <section className="container py-12 md:py-20">
+          <Reveal className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between md:mb-8">
+            <div>
+              <p className="eyebrow">03 · {tn("packs")}</p>
+              <h2 className="mt-2 font-serif text-3xl font-bold sm:text-5xl">{t("packsTitle")}</h2>
+              <p className="mt-2 text-muted-foreground">{ts("packs.subtitle")}</p>
+            </div>
+            <Button asChild variant="outline"><Link href="/packs">{ts("packs.seeAll")}<ArrowRight className="flip-rtl" /></Link></Button>
+          </Reveal>
+          <PacksShowcase packs={packs} />
+        </section>
+      )}
+
       {/* How it works */}
-      <section className="container py-20 md:py-28">
+      <section className="container py-12 md:py-20">
         <Reveal className="mx-auto max-w-2xl text-center">
-          <p className="eyebrow">01 · {tn("home")}</p>
+          <p className="eyebrow">{tn("home")}</p>
           <TextReveal as="h2" text={t("howTitle")} className="mt-3 block font-serif text-3xl font-bold sm:text-5xl" />
           <p className="mt-3 text-muted-foreground">{localized(settings, "howItWorks", locale) || t("howSubtitle")}</p>
         </Reveal>
-        <Stagger className="mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        <Stagger className="mt-8 grid grid-cols-2 gap-3 sm:gap-6 md:mt-14 lg:grid-cols-4">
           {steps.map(({ icon: Icon, n }) => (
             <StaggerItem key={n}>
-              <div className="group relative h-full overflow-hidden border-t-4 border-t-primary bg-card p-6 shadow-soft transition-all duration-500 hover:-translate-y-2 hover:shadow-lift">
+              <div className="group relative h-full overflow-hidden border-t-4 border-t-primary bg-card p-4 shadow-soft sm:p-6 transition-all duration-500 hover:-translate-y-2 hover:shadow-lift">
                 <span className="absolute end-5 top-4 font-serif text-5xl font-semibold text-muted/80 transition-colors group-hover:text-accent">0{n}</span>
                 <span className="relative grid h-12 w-12 place-items-center rounded-xl bg-sage-soft text-primary"><Icon className="h-6 w-6" /></span>
                 <h3 className="relative mt-5 font-serif text-xl font-semibold">{t(`how.s${n}t`)}</h3>
@@ -57,25 +112,6 @@ export default async function HomePage() {
           ))}
         </Stagger>
       </section>
-
-      {/* Featured recipes */}
-      {featured.length > 0 && (
-        <section className="bg-cream py-20 md:py-28">
-          <div className="container">
-            <Reveal className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-              <div>
-                <p className="eyebrow">02 · {tn("recipes")}</p>
-                <TextReveal as="h2" text={t("featuredTitle")} className="mt-3 block font-serif text-3xl font-bold sm:text-5xl" />
-                <p className="mt-2 text-muted-foreground">{t("featuredSubtitle")}</p>
-              </div>
-              <Button asChild variant="outline"><Link href="/recettes">{t("seeAllRecipes")}<ArrowRight className="flip-rtl" /></Link></Button>
-            </Reveal>
-            <Stagger className="mt-12 grid gap-x-6 gap-y-12 sm:grid-cols-2 lg:grid-cols-3">
-              {featured.map((r) => <StaggerItem key={r.id}><PublicRecipeCard recipe={r} locale={locale} cta={t("discover")} /></StaggerItem>)}
-            </Stagger>
-          </div>
-        </section>
-      )}
 
       {/* Client account benefits */}
       <section className="container py-20 md:py-28">
@@ -104,29 +140,6 @@ export default async function HomePage() {
           </Stagger>
         </div>
       </section>
-
-      {/* Packs */}
-      {packs.length > 0 && (
-        <section className="container pb-20 md:pb-28">
-          <TextReveal as="h2" text={t("packsTitle")} className="block font-serif text-3xl font-bold sm:text-5xl" />
-          <Stagger className="mt-10 grid gap-6 md:grid-cols-3">
-            {packs.map((p) => (
-              <StaggerItem key={p.id}>
-                <Link href={`/commander?pack=${p.id}`} className="group relative block h-full overflow-hidden shadow-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                  {p.imageUrl ? <img src={p.imageUrl} alt="" className="aspect-[4/3] w-full object-cover transition-transform duration-700 group-hover:scale-105" /> : <div className="aspect-[4/3] bg-gradient-to-br from-sage-soft to-accent" />}
-                  <div className="absolute inset-0 bg-gradient-to-t from-[hsl(222_47%_8%/0.85)] to-transparent" />
-                  <div className="absolute inset-x-0 bottom-0 p-6 text-white">
-                    <h3 className="font-serif text-2xl font-semibold">{lname(p, locale)}</h3>
-                    <p className="mt-1 line-clamp-2 text-sm text-white/80">{ldesc(p, locale)}</p>
-                    {p.price !== null && <p className="mt-1 text-lg font-bold">{formatMoney(Number(p.price), locale)}</p>}
-                    <span className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-lemon">{t("heroCtaSecondary")}<ArrowRight className="h-4 w-4 flip-rtl transition-transform group-hover:translate-x-1 rtl:group-hover:-translate-x-1" /></span>
-                  </div>
-                </Link>
-              </StaggerItem>
-            ))}
-          </Stagger>
-        </section>
-      )}
 
       {/* About */}
       {localized(settings, "aboutText", locale) && (

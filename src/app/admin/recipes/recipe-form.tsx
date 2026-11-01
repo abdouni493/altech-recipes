@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Badge, Card, CardContent, Input, Textarea } from "@/components/ui/basic";
 import { Switch } from "@/components/ui/primitives";
 import { Field, FieldError } from "@/components/shared/form-fields";
+import { CategorySelect } from "@/components/shared/category-select";
 import { ImageUpload } from "@/components/shared/image-upload";
 import { ProductCombobox } from "@/components/shared/product-combobox";
 import { Stepper } from "@/components/shared/stepper";
@@ -21,18 +22,20 @@ import { useActionFeedback } from "@/components/shared/use-action-feedback";
 import { saveRecipeAction } from "@/actions/recipes";
 import { recipeSchema, type RecipeInput } from "@/lib/schemas";
 import type { ProductDTO } from "@/lib/dto";
+import type { CategoryDTO } from "@/lib/categories";
 import { ldesc, lname } from "@/lib/i18n-data";
 import { formatNumber } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 const STEP_FIELDS: (keyof RecipeInput)[][] = [
-  ["name", "nameAr", "description", "descriptionAr", "imageUrl"],
+  ["name", "nameAr", "description", "descriptionAr", "imageUrl", "categoryId"],
   ["ingredients"],
   ["outputQuantity", "outputUnitId", "price"],
   [],
 ];
 
-export function RecipeForm({ products, initial, recipeId }: { products: ProductDTO[]; initial?: RecipeInput; recipeId?: string }) {
+export function RecipeForm({ products, categories, initial, recipeId }: { products: ProductDTO[]; categories: CategoryDTO[]; initial?: RecipeInput; recipeId?: string }) {
+  const ts = useTranslations("shop");
   const t = useTranslations("recipes");
   const tc = useTranslations("common");
   const locale = useLocale();
@@ -121,6 +124,11 @@ export function RecipeForm({ products, initial, recipeId }: { products: ProductD
                 <div className="space-y-5">
                   <Field label={t("name")} htmlFor="recipe-name" error={errors.name?.message}>
                     <Input id="recipe-name" placeholder={t("namePlaceholder")} {...form.register("name")} aria-invalid={!!errors.name} />
+                  </Field>
+                  <Field label={ts("category")} htmlFor="recipe-category" optional optionalLabel={tc("optional")}>
+                    <Controller control={form.control} name="categoryId" render={({ field }) => (
+                      <CategorySelect id="recipe-category" kind="RECIPE" categories={categories} value={field.value} onChange={field.onChange} />
+                    )} />
                   </Field>
                   <Field label={t("description")} htmlFor="recipe-description" optional optionalLabel={tc("optional")} error={errors.description?.message}>
                     <Textarea id="recipe-description" rows={5} placeholder={t("descriptionPlaceholder")} {...form.register("description")} />

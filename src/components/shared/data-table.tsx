@@ -80,7 +80,7 @@ export function DataTable<T>({
                     const meta = h.column.columnDef.meta as { className?: string } | undefined;
                     return (
                       <th key={h.id} scope="col" aria-sort={dir === "asc" ? "ascending" : dir === "desc" ? "descending" : undefined}
-                        className={cn("whitespace-nowrap px-4 py-3 text-start text-xs font-semibold uppercase tracking-wide text-muted-foreground", meta?.className)}>
+                        className={cn("whitespace-nowrap px-3 py-2.5 text-start text-xs sm:px-4 sm:py-3 font-semibold uppercase tracking-wide text-muted-foreground", meta?.className)}>
                         {h.isPlaceholder ? null : sortable ? (
                           <button type="button" onClick={h.column.getToggleSortingHandler()} className="inline-flex items-center gap-1.5 rounded hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                             {flexRender(h.column.columnDef.header, h.getContext())}
@@ -101,7 +101,7 @@ export function DataTable<T>({
                   className={cn("transition-colors hover:bg-secondary/40", onRowClick && "cursor-pointer", rowClassName?.(row.original))}>
                   {row.getVisibleCells().map((cell) => {
                     const meta = cell.column.columnDef.meta as { className?: string } | undefined;
-                    return <td key={cell.id} className={cn("px-4 py-3 align-middle", meta?.className)}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</td>;
+                    return <td key={cell.id} className={cn("px-3 py-2.5 align-middle sm:px-4 sm:py-3", meta?.className)}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</td>;
                   })}
                 </tr>
               ))}

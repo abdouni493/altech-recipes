@@ -2,7 +2,7 @@
 
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
-import { orderSchema, type OrderInput } from "@/lib/order-schema";
+import { customOrderSchema, orderSchema, type CustomOrderInput, type OrderInput } from "@/lib/order-schema";
 import { db, q } from "@/lib/db";
 import { requireStaff } from "@/lib/authz";
 import { runAction } from "@/lib/action-utils";
@@ -38,11 +38,35 @@ export async function createOrderAction(input: OrderInput): Promise<ActionResult
     // An order without items (a simple question) still goes through create_order().
     const orderNumber = d.items.length
       ? await q<string>(db().rpc("create_order_v2", {
-          ...base, p_items: d.items, p_message: d.message, p_wants_client_account: d.wantsClientAccount,
+          ...base, p_items: rpcItems(d.items), p_message: d.message, p_wants_client_account: d.wantsClientAccount,
         }))
       : await q<string>(db().rpc("create_order", {
           ...base, p_recipe_id: null, p_pack_id: null, p_message: d.message, p_wants_client_account: d.wantsClientAccount,
         }));
+    revalidatePath("/admin", "layout");
+    return { ok: true, data: { orderNumber } };
+  });
+}
+
+const rpcItems = (items: { type: string; id: string; quantity: number; tierId?: string | null }[]) =>
+  items.map((i) => ({ type: i.type, id: i.id, quantity: i.quantity, tier_id: i.tierId ?? null }));
+
+/** Website: a personalized recipe (name + products and quantities), confirmed by staff like any order. */
+export async function createCustomOrderAction(input: CustomOrderInput): Promise<ActionResult<{ orderNumber: string }>> {
+  return runAction(async () => {
+    const parsed = customOrderSchema.safeParse(input);
+    if (!parsed.success) return { ok: false, error: "site.orderError", fieldErrors: zodFieldErrors(parsed.error) };
+    const ip = headers().get("x-forwarded-for")?.split(",")[0]?.trim() || "local";
+    if (rateLimited(ip)) return { ok: false, error: "site.tooMany" };
+    const d = parsed.data;
+    const wilaya = findWilaya(d.wilayaCode);
+    if (!wilaya) return { ok: false, error: "site.orderError", fieldErrors: { wilayaCode: V.selectWilaya } };
+    const commune = wilaya.communes.find((c) => c.fr === d.communeName);
+    if (!commune) return { ok: false, error: "site.orderError", fieldErrors: { communeName: V.selectCommune } };
+    const orderNumber = await q<string>(db().rpc("create_custom_order", {
+      p_full_name: d.fullName, p_phone: d.phone, p_wilaya_code: wilaya.code, p_wilaya_name: wilaya.fr, p_commune_name: commune.fr,
+      p_recipe_name: d.recipeName, p_items: rpcItems(d.items), p_message: d.message, p_wants_client_account: d.wantsClientAccount,
+    }));
     revalidatePath("/admin", "layout");
     return { ok: true, data: { orderNumber } };
   });

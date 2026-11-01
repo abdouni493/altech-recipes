@@ -33,7 +33,9 @@
     "clientArea": "Espace client",
     "login": "Connexion",
     "myArea": "Mon espace",
-    "products": "Produits"
+    "products": "Produits",
+    "packs": "Packs",
+    "custom": "Recette perso"
   },
   "groups": {
     "overview": "Vue d’ensemble",

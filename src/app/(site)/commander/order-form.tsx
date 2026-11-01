@@ -19,11 +19,15 @@ import { createOrderAction, recipeProductsAction } from "@/actions/orders";
 import { orderSchema, type OrderInput } from "@/lib/order-schema";
 import { formatMoney } from "@/lib/commerce";
 import { lname } from "@/lib/i18n-data";
-import { useSiteCart, type CartItemType } from "@/lib/site-cart";
-import type { PublicRecipeProduct } from "@/lib/public-queries";
+import { sameLine, useSiteCart, type CartItem, type CartItemType } from "@/lib/site-cart";
+import { qtyLabel, tierSaving } from "@/lib/shop";
+import type { PriceTier, PublicRecipeProduct } from "@/lib/public-queries";
 import { cn, whatsappLink } from "@/lib/utils";
 
-export type CatalogItem = { type: CartItemType; id: string; name: string; nameAr: string; imageUrl: string | null; price: number | null; out: boolean };
+export type CatalogItem = {
+  type: CartItemType; id: string; name: string; nameAr: string; imageUrl: string | null; price: number | null; out: boolean;
+  unitSymbol?: string; tiers?: PriceTier[];
+};
 
 const ICONS = { RECIPE: BookOpen, PACK: Boxes, PRODUCT: Package } as const;
 
@@ -44,12 +48,15 @@ export function OrderForm({ catalog, initial, whatsappNumber }: {
   const key = (type: string, id: string) => `${type}:${id}`;
   const byKey = useMemo(() => new Map(catalog.map((c) => [key(c.type, c.id), c])), [catalog]);
 
-  // Only keep basket lines that still exist in the catalog.
+  // Only keep basket lines that still exist in the catalog; a quantity offer prices the line per offer.
   const lines = cart.items.flatMap((i) => {
     const item = byKey.get(key(i.type, i.id));
-    return item ? [{ ...i, item }] : [];
+    if (!item) return [];
+    const tier = i.tierId ? item.tiers?.find((x) => x.id === i.tierId) ?? null : null;
+    const unitPrice = tier ? tier.price : item.price;
+    return [{ ...i, tierId: tier?.id ?? null, item, tier, unitPrice, lineTotal: unitPrice === null ? null : unitPrice * i.quantity }];
   });
-  const total = lines.reduce((s, l) => s + (l.item.price ?? 0) * l.quantity, 0);
+  const total = lines.reduce((s, l) => s + (l.lineTotal ?? 0), 0);
   const hasUnpriced = lines.some((l) => l.item.price === null);
 
   async function proposeProducts(recipe: CatalogItem) {
@@ -76,8 +83,17 @@ export function OrderForm({ catalog, initial, whatsappNumber }: {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initial]);
 
-  function setQty(type: CartItemType, id: string, quantity: number) {
-    cart.set(quantity <= 0 ? cart.items.filter((i) => !(i.type === type && i.id === id)) : cart.items.map((i) => (i.type === type && i.id === id ? { ...i, quantity } : i)));
+  function setQty(line: Pick<CartItem, "type" | "id" | "tierId">, quantity: number) {
+    cart.set(quantity <= 0 ? cart.items.filter((i) => !sameLine(i, line)) : cart.items.map((i) => (sameLine(i, line) ? { ...i, quantity } : i)));
+  }
+
+  /** Switches a product line to another quantity offer (merging with an existing line of that offer). */
+  function setTier(line: Pick<CartItem, "type" | "id" | "tierId">, tierId: string | null) {
+    const cur = cart.items.find((i) => sameLine(i, line));
+    if (!cur) return;
+    const rest = cart.items.filter((i) => i !== cur);
+    const target = rest.find((i) => sameLine(i, { ...line, tierId }));
+    cart.set(target ? rest.map((i) => (i === target ? { ...i, quantity: i.quantity + cur.quantity } : i)) : cart.items.map((i) => (i === cur ? { ...i, tierId } : i)));
   }
 
   function acceptSuggestion() {
@@ -89,7 +105,7 @@ export function OrderForm({ catalog, initial, whatsappNumber }: {
   }
 
   async function submit(v: OrderInput) {
-    const items = lines.map((l) => ({ type: l.type, id: l.id, quantity: l.quantity }));
+    const items = lines.map((l) => ({ type: l.type, id: l.id, quantity: l.quantity, tierId: l.tierId }));
     const res = await createOrderAction({ ...v, items });
     if (!res.ok) {
       Object.entries(res.fieldErrors ?? {}).forEach(([k, m]) => form.setError(k as keyof OrderInput, { message: m }));
@@ -140,11 +156,11 @@ export function OrderForm({ catalog, initial, whatsappNumber }: {
   ];
 
   return (
-    <form onSubmit={form.handleSubmit(submit)} className="mt-10 grid gap-6 lg:grid-cols-[1fr_22rem]" noValidate>
+    <form onSubmit={form.handleSubmit(submit)} className="grid gap-6 lg:grid-cols-[1fr_22rem]" noValidate>
       <div className="space-y-6">
         {/* Basket */}
         <Card>
-          <CardContent className="space-y-4 pt-6 sm:p-6">
+          <CardContent className="space-y-4 p-4 sm:p-6">
             <h2 className="flex items-center gap-2 font-serif text-xl font-semibold"><ShoppingBag className="h-5 w-5 text-primary" />{t("form.basket")}</h2>
             <div className="grid gap-2 sm:grid-cols-3">
               {groups.map((g) => {
@@ -212,21 +228,46 @@ export function OrderForm({ catalog, initial, whatsappNumber }: {
               <ul className="divide-y rounded-xl border">
                 {lines.map((l) => {
                   const Icon = ICONS[l.type];
+                  const tiers = l.item.tiers ?? [];
+                  const unit = l.item.unitSymbol ?? "";
                   return (
-                    <li key={key(l.type, l.id)} className="flex items-center gap-3 p-3">
-                      {l.item.imageUrl ? <img src={l.item.imageUrl} alt="" className="h-12 w-12 rounded-lg object-cover" /> : <div className="grid h-12 w-12 place-items-center rounded-lg bg-muted"><Icon className="h-5 w-5 text-muted-foreground" /></div>}
-                      <div className="min-w-0 flex-1">
-                        <div className="truncate font-medium">{lname(l.item, locale)}</div>
-                        <div className="text-xs text-muted-foreground">{t(`form.type.${l.type}`)} · {l.item.price !== null ? formatMoney(l.item.price, locale) : t("form.priceOnRequest")}</div>
+                    <li key={key(l.type, l.id) + (l.tierId ?? "")} className="space-y-2 p-2.5 sm:p-3">
+                      <div className="flex items-center gap-2.5 sm:gap-3">
+                        {l.item.imageUrl ? <img src={l.item.imageUrl} alt="" className="h-11 w-11 shrink-0 rounded-lg object-cover sm:h-12 sm:w-12" /> : <div className="grid h-11 w-11 shrink-0 place-items-center rounded-lg bg-muted sm:h-12 sm:w-12"><Icon className="h-5 w-5 text-muted-foreground" /></div>}
+                        <div className="min-w-0 flex-1">
+                          <div className="truncate text-sm font-medium sm:text-base">{lname(l.item, locale)}</div>
+                          <div className="text-xs text-muted-foreground">
+                            {t(`form.type.${l.type}`)} · {l.unitPrice !== null ? formatMoney(l.unitPrice, locale) : t("form.priceOnRequest")}
+                            {l.tier ? ` / ${qtyLabel(l.tier.quantity)} ${unit}` : unit ? ` / ${unit}` : ""}
+                          </div>
+                        </div>
+                        <div className="flex items-center rounded-lg border">
+                          <button type="button" className="grid h-8 w-8 place-items-center" onClick={() => setQty(l, l.quantity - 1)} aria-label="-"><Minus className="h-3.5 w-3.5" /></button>
+                          <Input inputMode="numeric" value={l.quantity} onChange={(ev) => setQty(l, Math.max(1, Math.min(10000, Number(ev.target.value) || 1)))}
+                            className="h-8 w-10 border-0 px-1 text-center sm:w-12" aria-label={t("form.quantity")} />
+                          <button type="button" className="grid h-8 w-8 place-items-center" onClick={() => setQty(l, l.quantity + 1)} aria-label="+"><Plus className="h-3.5 w-3.5" /></button>
+                        </div>
+                        <button type="button" onClick={() => setQty(l, 0)} className="rounded p-1.5 text-muted-foreground hover:text-destructive" aria-label={t("form.remove")}><Trash2 className="h-4 w-4" /></button>
                       </div>
-                      <div className="flex items-center rounded-lg border">
-                        <button type="button" className="grid h-8 w-8 place-items-center" onClick={() => setQty(l.type, l.id, l.quantity - 1)} aria-label="-"><Minus className="h-3.5 w-3.5" /></button>
-                        <Input inputMode="numeric" value={l.quantity} onChange={(ev) => setQty(l.type, l.id, Math.max(1, Math.min(10000, Number(ev.target.value) || 1)))}
-                          className="h-8 w-12 border-0 px-1 text-center" aria-label={t("form.quantity")} />
-                        <button type="button" className="grid h-8 w-8 place-items-center" onClick={() => setQty(l.type, l.id, l.quantity + 1)} aria-label="+"><Plus className="h-3.5 w-3.5" /></button>
+                      {tiers.length > 0 && l.item.price !== null && (
+                        <div className="flex flex-wrap gap-1.5 ps-14 sm:ps-[3.75rem]">
+                          {[null, ...tiers].map((tr) => {
+                            const active = (tr?.id ?? null) === l.tierId;
+                            const saving = tr ? tierSaving(l.item.price!, tr) : 0;
+                            return (
+                              <button key={tr?.id ?? "unit"} type="button" onClick={() => setTier(l, tr?.id ?? null)} aria-pressed={active}
+                                className={cn("rounded-full border px-2.5 py-1 text-xs font-semibold transition", active ? "border-primary bg-primary text-primary-foreground" : "bg-background hover:border-primary/50")}>
+                                {tr ? `${qtyLabel(tr.quantity)} ${unit} · ${formatMoney(tr.price, locale)}` : `1 ${unit}`}
+                                {saving > 0 && <span className={cn("ms-1", active ? "text-lemon" : "text-success")}>-{saving}%</span>}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                      <div className="flex justify-between ps-14 text-xs sm:ps-[3.75rem]">
+                        <span className="text-muted-foreground">{l.tier || unit ? `${qtyLabel((l.tier?.quantity ?? 1) * l.quantity)} ${unit}` : ""}</span>
+                        <span className="font-semibold">{l.lineTotal !== null ? formatMoney(l.lineTotal, locale) : "—"}</span>
                       </div>
-                      <div className="hidden w-28 text-end text-sm font-semibold sm:block">{l.item.price !== null ? formatMoney(l.item.price * l.quantity, locale) : "—"}</div>
-                      <button type="button" onClick={() => setQty(l.type, l.id, 0)} className="rounded p-1.5 text-muted-foreground hover:text-destructive" aria-label={t("form.remove")}><Trash2 className="h-4 w-4" /></button>
                     </li>
                   );
                 })}
@@ -237,7 +278,7 @@ export function OrderForm({ catalog, initial, whatsappNumber }: {
 
         {/* Customer */}
         <Card>
-          <CardContent className="space-y-6 pt-6 sm:p-6">
+          <CardContent className="space-y-6 p-4 sm:p-6">
             <h2 className="font-serif text-xl font-semibold">{t("form.yourDetails")}</h2>
             <div className="grid gap-5 sm:grid-cols-2">
               <Field label={t("form.fullName")} htmlFor="o-name" error={e.fullName?.message}>
@@ -280,13 +321,13 @@ export function OrderForm({ catalog, initial, whatsappNumber }: {
 
       {/* Summary */}
       <Card className="lg:sticky lg:top-24 lg:self-start">
-        <CardContent className="space-y-4 pt-6 sm:p-6">
+        <CardContent className="space-y-4 p-4 sm:p-6">
           <h2 className="font-serif text-xl font-semibold">{t("form.summary")}</h2>
           <ul className="space-y-1.5 text-sm">
             {lines.map((l) => (
-              <li key={key(l.type, l.id)} className="flex justify-between gap-3">
-                <span className="truncate text-muted-foreground">{l.quantity} × {lname(l.item, locale)}</span>
-                <span className="shrink-0">{l.item.price !== null ? formatMoney(l.item.price * l.quantity, locale) : "—"}</span>
+              <li key={key(l.type, l.id) + (l.tierId ?? "")} className="flex justify-between gap-3">
+                <span className="truncate text-muted-foreground">{l.quantity} × {lname(l.item, locale)}{l.tier ? ` (${qtyLabel(l.tier.quantity)} ${l.item.unitSymbol ?? ""})` : ""}</span>
+                <span className="shrink-0">{l.lineTotal !== null ? formatMoney(l.lineTotal, locale) : "—"}</span>
               </li>
             ))}
             {lines.length === 0 && <li className="text-muted-foreground">{t("form.basketEmpty")}</li>}

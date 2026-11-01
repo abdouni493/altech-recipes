@@ -33,7 +33,9 @@
     "clientArea": "فضاء الزبون",
     "login": "تسجيل الدخول",
     "myArea": "فضائي",
-    "products": "المنتجات"
+    "products": "المنتجات",
+    "packs": "الباقات",
+    "custom": "وصفة مخصّصة"
   },
   "groups": {
     "overview": "نظرة عامة",

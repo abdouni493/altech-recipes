@@ -10,11 +10,11 @@ export type Product = {
   id: string; name: string; nameAr: string; description: string; descriptionAr: string; imageUrl: string | null;
   unitId: string; createdAt: string; updatedAt: string;
   barcode: string | null; purchasePrice: number; priceDetail: number; priceReseller: number; priceWholesale: number;
-  stockQuantity: number; minStockAlert: number; isVisibleOnWebsite: boolean; isOutOfStock: boolean;
+  stockQuantity: number; minStockAlert: number; isVisibleOnWebsite: boolean; isOutOfStock: boolean; categoryId: string | null;
 };
 export type Recipe = {
   id: string; name: string; nameAr: string; description: string; descriptionAr: string; imageUrl: string | null;
-  outputQuantity: number; outputUnitId: string; isVisibleOnWebsite: boolean; createdAt: string; updatedAt: string; price: number | null;
+  outputQuantity: number; outputUnitId: string; isVisibleOnWebsite: boolean; createdAt: string; updatedAt: string; price: number | null; categoryId: string | null;
 };
 export type RecipeIngredient = { id: string; recipeId: string; productId: string; quantity: number; unitId: string; position: number };
 export type Pack = {
@@ -29,6 +29,7 @@ export type ClientPermission = { id: string; clientId: string; recipeId: string;
 export type Order = {
   id: string; orderNumber: string; fullName: string; phone: string; wilayaCode: string; wilayaName: string; communeName: string;
   recipeId: string | null; packId: string | null; message: string; wantsClientAccount: boolean; status: string;
+  isCustom?: boolean; customRecipeName?: string;
   createdAt: string; confirmedAt: string | null; cancelledAt: string | null;
 };
 export type SiteSettings = {

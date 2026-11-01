@@ -11,8 +11,21 @@ export const orderSchema = z.object({
     type: z.enum(["RECIPE", "PACK", "PRODUCT"]),
     id: z.string().min(1).max(64),
     quantity: z.number().positive().max(10000),
+    tierId: z.string().max(64).nullish(),
   })).max(50).default([]),
   message: optionalText(2000),
   wantsClientAccount: z.boolean().default(false),
 });
 export type OrderInput = z.input<typeof orderSchema>;
+
+/** Personalized recipe built on the website: a name and products with quantities. */
+export const customOrderSchema = orderSchema.extend({
+  recipeName: requiredText(120),
+  items: z.array(z.object({
+    type: z.literal("PRODUCT"),
+    id: z.string().min(1).max(64),
+    quantity: z.number().positive().max(10000),
+    tierId: z.string().max(64).nullish(),
+  })).min(1, "shop.custom.noProducts").max(50),
+});
+export type CustomOrderInput = z.input<typeof customOrderSchema>;

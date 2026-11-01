@@ -12,12 +12,13 @@ export async function savePackAction(id: string | null, input: PackInput): Promi
     await requireStaff(id ? "packs.edit" : "packs.create");
     const parsed = packSchema.safeParse(input);
     if (!parsed.success) return { ok: false, error: "validation.invalid", fieldErrors: zodFieldErrors(parsed.error) };
-    const { recipeIds, price, ...data } = parsed.data;
+    const { recipeIds, products, price, ...data } = parsed.data;
     try {
-      // save_pack() writes the pack and its recipes in one transaction.
-      const pack = await q<{ id: string; name: string }>(
-        db().rpc("save_pack", { p_id: id, p_data: snake(data), p_recipe_ids: Array.from(new Set(recipeIds)) }),
-      );
+      // save_pack_v2() writes the pack, its recipes and its products in one transaction (supabase/website-3.sql).
+      const pack = await q<{ id: string; name: string }>(db().rpc("save_pack_v2", {
+        p_id: id, p_data: snake(data), p_recipe_ids: Array.from(new Set(recipeIds)),
+        p_products: products.map((p) => ({ product_id: p.productId, quantity: p.quantity })),
+      }));
       // Website price (supabase/commerce-2.sql).
       await q(db().rpc("set_catalog_price", { p_kind: "PACK", p_id: pack.id, p_price: price ?? null }));
       revalidatePath("/admin", "layout");

@@ -2,10 +2,11 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getLocale, getTranslations } from "next-intl/server";
-import { ArrowLeft, BookOpen, Lock, ShoppingBag } from "lucide-react";
+import { ArrowLeft, BookOpen, Lock } from "lucide-react";
 import { getPublicRecipe, getPublicRecipes } from "@/lib/public-queries";
 import { formatMoney } from "@/lib/commerce";
-import { Button } from "@/components/ui/button";
+import { AddToCartButtons } from "@/components/site/shop";
+import { recipeItem } from "@/lib/shop";
 import { Reveal, Stagger, StaggerItem } from "@/components/shared/motion";
 import { PublicRecipeCard } from "@/components/site/public-recipe-card";
 import { ldesc, lname } from "@/lib/i18n-data";
@@ -26,7 +27,7 @@ export default async function PublicRecipePage({ params }: { params: { id: strin
   const name = lname(recipe, locale);
 
   return (
-    <div className="container pt-8 md:pt-12">
+    <div className="container pt-6 md:pt-12">
       <Link href="/recettes" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
         <ArrowLeft className="h-4 w-4 flip-rtl" />{t("backToRecipes")}
       </Link>
@@ -37,19 +38,19 @@ export default async function PublicRecipePage({ params }: { params: { id: strin
           </div>
         </Reveal>
         <Reveal delay={0.1} className="space-y-6">
-          <h1 className="font-serif text-4xl font-semibold leading-tight sm:text-5xl">{name}</h1>
+          <h1 className="font-serif text-3xl font-semibold leading-tight sm:text-5xl">{name}</h1>
           <p className="whitespace-pre-line text-lg leading-relaxed text-muted-foreground">{ldesc(recipe, locale)}</p>
           {recipe.price !== null && <p className="text-3xl font-bold text-primary">{formatMoney(Number(recipe.price), locale)}</p>}
           <div className="flex gap-3 rounded-2xl border border-dashed border-primary/40 bg-sage-soft/40 p-4 text-sm">
             <Lock className="mt-0.5 h-4 w-4 shrink-0 text-primary" />{t("recipeTeaser")}
           </div>
-          <Button asChild size="lg"><Link href={`/commander?recipe=${recipe.id}`}><ShoppingBag />{t("orderThis")}</Link></Button>
+          <AddToCartButtons item={recipeItem(recipe)} />
         </Reveal>
       </div>
       {others.length > 0 && (
-        <section className="mt-24">
+        <section className="mt-16 md:mt-24">
           <h2 className="font-serif text-2xl font-semibold sm:text-3xl">{t("featuredTitle")}</h2>
-          <Stagger className="mt-8 grid gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
+          <Stagger className="mt-8 grid grid-cols-2 gap-x-3 gap-y-8 sm:gap-x-6 lg:grid-cols-3">
             {others.map((r) => <StaggerItem key={r.id}><PublicRecipeCard recipe={r} locale={locale} cta={t("discover")} /></StaggerItem>)}
           </Stagger>
         </section>

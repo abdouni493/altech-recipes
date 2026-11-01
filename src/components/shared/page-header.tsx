@@ -14,7 +14,7 @@ export function PageHeader({
   className?: string;
 }) {
   return (
-    <div className={cn("mb-6 flex flex-col gap-4 sm:mb-8 sm:flex-row sm:items-end sm:justify-between", className)}>
+    <div className={cn("mb-5 flex flex-col gap-3 sm:mb-8 sm:flex-row sm:items-end sm:justify-between sm:gap-4", className)}>
       <div className="min-w-0 space-y-1.5">
         {backHref && (
           <Link href={backHref} className="mb-2 inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground">
@@ -43,7 +43,7 @@ export function EmptyState({
   className?: string;
 }) {
   return (
-    <div className={cn("flex flex-col items-center justify-center gap-3 rounded-md border-2 border-dashed bg-cream px-6 py-14 text-center", className)}>
+    <div className={cn("flex flex-col items-center justify-center gap-3 rounded-md border-2 border-dashed bg-cream px-4 py-10 text-center sm:px-6 sm:py-14", className)}>
       <div className="relative mb-1">
         <div className="absolute inset-0 -z-0 scale-150 rounded-full bg-accent/60 blur-xl" />
         <div className="relative grid h-16 w-16 place-items-center rounded-full bg-primary text-primary-foreground [&_svg]:h-7 [&_svg]:w-7">{icon}</div>

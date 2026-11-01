@@ -10,6 +10,12 @@ const amountField = z.preprocess(
   z.number({ invalid_type_error: V.number }).finite(V.number).min(0, V.positive).max(1_000_000_000, V.invalid),
 );
 
+/** Optional category id; empty → none. */
+const categoryField = z.string().max(64).nullish().transform((v) => v || null);
+
+/** Quantity offer of a product: `price` is the total for `quantity` units. */
+export const priceTierSchema = z.object({ quantity: positiveNumber, price: amountField });
+
 export const DIMENSIONS = ["VOLUME", "MASS", "COUNT", "OTHER"] as const;
 
 export const unitSchema = z.object({
@@ -37,6 +43,9 @@ export const productSchema = z.object({
   /** Only used when the product is created; later changes go through stock movements. */
   stockQuantity: amountField,
   isVisibleOnWebsite: z.boolean().default(false),
+  categoryId: categoryField,
+  tiers: z.array(priceTierSchema).max(20).default([])
+    .refine((rows) => new Set(rows.map((r) => r.quantity)).size === rows.length, "shop.tiers.duplicate"),
 });
 export type ProductInput = z.input<typeof productSchema>;
 
@@ -60,6 +69,7 @@ export const recipeSchema = z.object({
   descriptionAr: optionalText(4000),
   imageUrl: imageUrlField,
   isVisibleOnWebsite: z.boolean().default(true),
+  categoryId: categoryField,
   ingredients: z
     .array(ingredientSchema)
     .min(1, V.atLeastOneIngredient)
@@ -76,8 +86,9 @@ export const packSchema = z.object({
   description: optionalText(2000),
   descriptionAr: optionalText(2000),
   imageUrl: imageUrlField,
-  recipeIds: z.array(z.string().min(1)).min(1, V.atLeastOneRecipe),
-});
+  recipeIds: z.array(z.string().min(1)).default([]),
+  products: z.array(z.object({ productId: z.string().min(1), quantity: positiveNumber })).default([]),
+}).refine((p) => p.recipeIds.length + p.products.length > 0, { message: "shop.packForm.needItems", path: ["recipeIds"] });
 export type PackInput = z.input<typeof packSchema>;
 
 export const supplierSchema = z.object({
