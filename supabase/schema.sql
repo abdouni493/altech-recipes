@@ -1052,7 +1052,7 @@ alter table public.products add column if not exists price_reseller        numer
 alter table public.products add column if not exists price_wholesale       numeric(14, 2) not null default 0;
 alter table public.products add column if not exists stock_quantity        numeric(20, 3) not null default 0;
 alter table public.products add column if not exists min_stock_alert       numeric(20, 3) not null default 0;
-alter table public.products add column if not exists is_visible_on_website boolean not null default false;
+alter table public.products add column if not exists is_visible_on_website boolean not null default true;
 alter table public.products add column if not exists is_out_of_stock       boolean not null default false;
 create unique index if not exists products_barcode_key on public.products (barcode) where barcode is not null and barcode <> '';
 

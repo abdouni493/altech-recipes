@@ -351,7 +351,7 @@ function ProductFormDialog({ open, onOpenChange, product, categories, onSaved }:
       imageUrl: product?.imageUrl ?? null, unitId: product?.unitId ?? "", barcode: product?.barcode ?? "",
       purchasePrice: product?.purchasePrice ?? 0, priceDetail: product?.priceDetail ?? 0, priceReseller: product?.priceReseller ?? 0,
       priceWholesale: product?.priceWholesale ?? 0, minStockAlert: product?.minStockAlert ?? 0, stockQuantity: product?.stockQuantity ?? 0,
-      isVisibleOnWebsite: product?.isVisibleOnWebsite ?? false, categoryId: product?.categoryId ?? null,
+      isVisibleOnWebsite: product?.isVisibleOnWebsite ?? true, categoryId: product?.categoryId ?? null,
       tiers: product?.tiers.map((x) => ({ quantity: x.quantity, price: x.price })) ?? [],
     });
     setShowAr(Boolean(product?.nameAr || product?.descriptionAr));

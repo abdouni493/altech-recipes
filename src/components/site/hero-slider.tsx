@@ -25,7 +25,7 @@ export function HeroSlider({ images, title, subtitle }: { images: string[]; titl
 
   return (
     <section className="relative -mt-16 overflow-hidden bg-foreground md:-mt-20" aria-roledescription="carousel">
-      <motion.div className="relative h-[88vh] min-h-[560px] w-full bg-primary"
+      <motion.div className="relative h-[60vh] min-h-[420px] md:h-[65vh] w-full bg-primary"
         initial={reduce ? false : { clipPath: "inset(6% 4% 6% 4%)" }} animate={{ clipPath: "inset(0% 0% 0% 0%)" }} transition={{ duration: 1.4, ease: [0.76, 0, 0.24, 1] }}>
         <AnimatePresence initial={false}>
           {count > 0 && (
@@ -36,7 +36,7 @@ export function HeroSlider({ images, title, subtitle }: { images: string[]; titl
           )}
         </AnimatePresence>
         <div className="absolute inset-0 bg-gradient-to-t from-[hsl(222_47%_8%/0.88)] via-[hsl(222_47%_8%/0.35)] to-[hsl(221_60%_20%/0.2)]" />
-        <div className="container relative flex h-full flex-col justify-end pb-24 pt-40 text-white md:pb-28">
+        <div className="container relative flex h-full flex-col justify-end pb-12 pt-28 text-white md:pb-16">
           <div className="max-w-4xl space-y-6">
             <motion.span initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.8, delay: 0.5 }} className="tag">{t("heroEyebrow")}</motion.span>
             <TextReveal as="h1" inView={false} delay={0.6} text={title} className="block font-serif text-4xl font-bold leading-[1.05] text-balance sm:text-5xl lg:text-7xl" />

@@ -38,11 +38,9 @@ export default async function HomePage() {
     <>
       <HeroSlider images={heroImages} title={localized(settings, "heroTitle", locale)} subtitle={localized(settings, "heroSubtitle", locale)} />
 
-      <Marquee className="overflow-hidden border-y bg-cream py-6 text-primary" items={[tn("recipes"), t("featuredTitle"), t("packsTitle"), tn("order")]} />
-
       {/* Products: every product, directly on the home page */}
       {products.length > 0 && (
-        <section id="produits" className="container scroll-mt-24 py-12 md:py-20">
+        <section id="produits" className="container scroll-mt-24 py-8 md:py-12">
           <Reveal className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between md:mb-8">
             <div>
               <p className="eyebrow">01 · {tn("products")}</p>
@@ -53,6 +51,8 @@ export default async function HomePage() {
           <ShopCatalog items={products.map(productItem)} categories={categories.filter((c) => c.kind === "PRODUCT")} />
         </section>
       )}
+
+      <Marquee className="overflow-hidden mb-12 border-y md:mb-20 bg-cream py-6 text-primary" items={[tn("recipes"), t("featuredTitle"), t("packsTitle"), tn("order")]} />
 
       {/* Calculator advert + personalized recipe */}
       <section className="container grid gap-4 pb-12 md:pb-20 lg:grid-cols-2">
